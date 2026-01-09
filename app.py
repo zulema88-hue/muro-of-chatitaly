@@ -12,136 +12,126 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Il Muro di Chatitaly", layout="wide")
+st.set_page_config(page_title="Chatitaly Urban Wall", layout="wide")
 
-# --- CSS: MURO DI MATTONI E EFFETTI GRAFFITI ---
+# --- CSS: MURO REALE E EFFETTO SPRAY ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nosifer&family=Rubik+Glitch&family=Bungee+Shade&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nosifer&family=Rubik+Glitch&family=Rock+Salt&display=swap');
     
-    /* Sfondo Muro di Mattoni Scuro */
+    /* SFONDO CON IMMAGINE DI MATTONI REALI */
     .stApp {
-        background-color: #1a1a1a;
-        background-image: 
-            linear-gradient(335deg, #111 23px, transparent 23px),
-            linear-gradient(155deg, #151515 23px, transparent 23px),
-            linear-gradient(335deg, #111 23px, transparent 23px),
-            linear-gradient(155deg, #151515 23px, transparent 23px);
-        background-size: 58px 58px;
+        background-image: url("https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80");
+        background-size: cover;
+        background-attachment: fixed;
     }
 
+    /* TITOLO NEON SOPRA IL MURO */
     .neon-title {
-        font-family: 'Bungee Shade', cursive;
-        color: #ff00ff;
+        font-family: 'Permanent Marker', cursive;
+        color: #fff;
         text-align: center;
-        text-shadow: 3px 3px 0px #00ffff;
-        font-size: clamp(30px, 8vw, 60px);
-        margin: 20px 0;
+        text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
+        font-size: 60px;
+        padding: 20px;
+        background: rgba(0,0,0,0.3);
     }
 
-    /* Contenitore Muro */
-    .brick-wall {
-        background: rgba(0,0,0,0.4);
-        border: 4px solid #222;
-        border-radius: 10px;
-        padding: 40px;
-        min-height: 500px;
+    /* CONTENITORE TRASPARENTE PER I GRAFFITI */
+    .wall-area {
+        min-height: 600px;
+        padding: 50px;
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         align-items: center;
-        gap: 30px;
-        box-shadow: inset 0 0 50px #000;
+        gap: 40px;
     }
 
-    /* Effetto Vernice Spray */
-    .tag {
+    /* EFFETTO SCRITTA VERNICIATA */
+    .graffiti {
         display: inline-block;
-        padding: 5px;
+        filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.9)); /* Ombra per profondità */
+        white-space: pre-wrap;
+        max-width: 300px;
         line-height: 1;
-        transition: transform 0.3s;
-        filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.8));
     }
 
-    .tag:hover {
-        transform: scale(1.2) !important;
-        filter: brightness(1.2) drop-shadow(0 0 10px white);
-    }
-
-    .author-tag {
+    .nick-label {
         font-family: 'Courier New', monospace;
         font-size: 10px;
         display: block;
-        opacity: 0.5;
-        margin-top: 5px;
+        opacity: 0.6;
+        color: white;
+        text-shadow: 1px 1px 1px #000;
+    }
+
+    /* STILIZZAZIONE INPUT BOX */
+    div[data-baseweb="input"] {
+        background-color: rgba(0,0,0,0.7) !important;
+        border-radius: 10px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 def carica_messaggi():
     try:
-        res = supabase.table("muro").select("*").order("id", desc=True).limit(40).execute()
+        res = supabase.table("muro").select("*").order("id", desc=True).limit(35).execute()
         return res.data
     except: return []
 
 def spruzza():
     t = st.session_state.get("input_testo", "")
-    n = st.session_state.get("input_nick", "")
+    n = st.session_state.get("input_nick", "ANON")
     if t and t.strip():
         data = {
             "testo": t.upper(),
             "autore": n.upper() if n.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
-            "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'"]),
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#00FF7F"]),
+            "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'", "'Rock Salt'"]),
             "rotazione": random.randint(-15, 15),
-            "font_size": random.randint(22, 38)
+            "font_size": random.randint(25, 45)
         }
         try:
             supabase.table("muro").insert(data).execute()
             st.session_state["input_testo"] = ""
         except: pass
 
-# --- INTERFACCIA ---
-st.markdown('<h1 class="neon-title">CHATITALY URBAN WALL</h1>', unsafe_allow_html=True)
+# --- UI ---
+st.markdown('<h1 class="neon-title">CHATITALY WALL</h1>', unsafe_allow_html=True)
 
-with st.container():
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        col_n, col_t = st.columns([1, 3])
-        with col_n:
-            st.text_input("NICK", key="input_nick", placeholder="Tag")
-        with col_t:
-            st.text_input("BOMBOLETTA", key="input_testo", on_change=spruzza, placeholder="Scrivi qui...")
+c1, c2, c3 = st.columns([1, 2, 1])
+with c2:
+    st.text_input("NICKNAME", key="input_nick", placeholder="Il tuo tag...")
+    st.text_input("SCRIVI SUL MURO", key="input_testo", on_change=spruzza, placeholder="Premi Invio per spruzzare!")
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<div class='wall-area'>", unsafe_allow_html=True)
 
-# --- IL MURO DI MATTONI ---
+# --- RENDERING GRAFFITI ---
 messaggi = carica_messaggi()
-
 if messaggi:
-    html_muro = "<div class='brick-wall'>"
+    html_tags = ""
     for m in messaggi:
         txt = str(m.get('testo', ''))
         aut = str(m.get('autore', 'ANON'))
         col = m.get('colore', '#FFF')
         fnt = m.get('font', 'Arial')
-        siz = m.get('font_size', 25)
+        siz = m.get('font_size', 30)
         rot = m.get('rotazione', 0)
         
-        html_muro += f"""
-        <div class="tag" style="transform: rotate({rot}deg); color: {col}; font-family: {fnt}; font-size: {siz}px;">
+        html_tags += f"""
+        <div class="graffiti" style="transform: rotate({rot}deg); color: {col}; font-family: {fnt}; font-size: {siz}px;">
             {txt}
-            <span class="author-tag">BY {aut}</span>
+            <span class="nick-label">BY {aut}</span>
         </div>
         """
-    html_muro += "</div>"
-    st.markdown(html_muro, unsafe_allow_html=True)
-else:
-    st.info("🎨 Il muro è pronto per i tuoi graffiti. Sii il primo!")
+    st.markdown(html_tags, unsafe_allow_html=True)
 
-# Sidebar Admin
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Admin Sidebar
 with st.sidebar:
-    if st.text_input("Admin", type="password") == "chatitaly123":
-        if st.button("PULISCI MURO"):
+    if st.text_input("Moderazione", type="password") == "chatitaly123":
+        if st.button("Pulisci Muro"):
             supabase.table("muro").delete().neq("id", 0).execute()
             st.rerun()
