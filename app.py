@@ -3,84 +3,102 @@ import random
 from datetime import datetime
 
 # --- CONFIGURAZIONE PAGINA ---
-st.set_page_config(page_title="Il Muro di Chatitaly", layout="centered")
+st.set_page_config(page_title="Il Muro di Chatitaly", layout="wide")
 
-# CSS per forzare lo sfondo scuro e lo stile dei graffiti
+# CSS PER EFFETTO NEON E GRAFFITI
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Frijole&display=swap');
+    
     .stApp {
-        background-color: #0e1117;
-        color: #ffffff;
+        background-color: #050505;
+        background-image: radial-gradient(#1a1a1a 1px, transparent 1px);
+        background-size: 30px 30px;
     }
-    .main {
-        background-color: #0e1117;
+
+    .neon-title {
+        font-family: 'Frijole', cursive;
+        color: #fff;
+        text-align: center;
+        text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+        font-size: 50px;
+        margin-bottom: 10px;
     }
-    .graffiti-box {
+
+    .graffiti-sticker {
         padding: 20px;
-        border-radius: 15px;
-        border-left: 5px solid #ff00ff;
-        background-color: #1a1c24;
-        margin: 15px 0px;
-        box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+        margin: 15px;
+        border-radius: 5px;
+        display: inline-block;
+        line-height: 1;
+        transition: all 0.3s;
     }
-    /* Font di riserva se Google Fonts fallisce */
-    @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap');
+
+    /* Effetto quando passi sopra con il mouse */
+    .graffiti-sticker:hover {
+        transform: scale(1.1) rotate(0deg) !important;
+        z-index: 100;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- INIZIALIZZAZIONE DATI ---
+# --- INIZIALIZZAZIONE ---
 if 'muro' not in st.session_state:
     st.session_state.muro = []
 
-colore_lista = ["#FF00FF", "#00FFFF", "#FFD700", "#ADFF2F", "#FF4500", "#00FFAB", "#FF69B4"]
+colors = ["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FF5E00"]
+rotations = [-3, -2, -1, 1, 2, 3] # Gradi di rotazione casuale
 
-# --- FUNZIONI ---
-def aggiungi_messaggio():
-    testo = st.session_state.temp_text
+# --- LOGICA ---
+def spruzza():
+    testo = st.session_state.input_testo
     if testo.strip():
         nuovo_post = {
-            "testo": testo,
-            "colore": random.choice(colore_lista),
+            "testo": testo.upper(),
+            "colore": random.choice(colors),
+            "rotazione": random.choice(rotations),
+            "font_size": random.randint(28, 45),
             "ora": datetime.now().strftime("%H:%M")
         }
         st.session_state.muro.append(nuovo_post)
-        st.session_state.temp_text = "" # Resetta il campo dopo l'invio
+        st.session_state.input_testo = ""
 
 # --- INTERFACCIA ---
-st.markdown("<h1 style='text-align: center; color: #FF00FF;'>🖌️ IL MURO DI CHATITALY</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #888;'>Scrivi il tuo messaggio... sparirà a mezzanotte.</p>", unsafe_allow_html=True)
+st.markdown("<h1 class='neon-title'>CHATITALY WALL</h1>", unsafe_allow_html=True)
 
-# Campo di Input
-st.text_input("Scrivi qui e premi Invio:", key="temp_text", on_change=aggiungi_messaggio)
+# Campo input al centro
+c1, c2, c3 = st.columns([1, 2, 1])
+with c2:
+    st.text_input("SCRIVI E PREMI INVIO PER SPRUZZARE 🎨", key="input_testo", on_change=spruzza)
 
-st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
-# --- VISUALIZZAZIONE MESSAGGI ---
-if not st.session_state.muro:
-    st.info("Il muro è ancora pulito. Scrivi qualcosa sopra!")
-else:
-    # Mostriamo i messaggi dall'ultimo al primo
-    for m in reversed(st.session_state.muro):
+# --- IL MURO ---
+# Creiamo un contenitore flessibile per i graffiti
+cols = st.columns(3)
+
+for i, m in enumerate(reversed(st.session_state.muro)):
+    with cols[i % 3]:
         st.markdown(f"""
-            <div class="graffiti-box">
-                <p style="font-family: 'Permanent Marker', cursive; color: {m['colore']}; font-size: 32px; margin: 0;">
-                    {m['testo']}
-                </p>
-                <small style="color: #555;">Inviato alle {m['ora']}</small>
+            <div class="graffiti-sticker" style="
+                transform: rotate({m['rotazione']}deg);
+                color: {m['colore']};
+                text-shadow: 2px 2px 0px #000, 0 0 15px {m['colore']};
+                font-family: 'Permanent Marker', cursive;
+                font-size: {m['font_size']}px;
+            ">
+                {m['testo']}
+                <div style="font-size: 10px; color: #444; font-family: sans-serif; text-shadow: none;">
+                    BY ANONYMOUS @ {m['ora']}
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
-# --- PANNELLO ADMIN (In fondo) ---
-st.write("##")
-with st.expander("🛠️ Area Admin"):
-    admin_pass = st.text_input("Password di moderazione", type="password")
-    if admin_pass == "chatitaly123":
-        if st.button("SVUOTA TUTTO IL MURO"):
+# --- ADMIN ---
+with st.sidebar:
+    st.title("🛠️ Admin")
+    pw = st.text_input("Password", type="password")
+    if pw == "chatitaly123":
+        if st.button("PULISCI MURO"):
             st.session_state.muro = []
             st.rerun()
-        
-        st.write("Elimina messaggi singoli:")
-        for i, m in enumerate(st.session_state.muro):
-            if st.button(f"Elimina: {m['testo'][:20]}...", key=f"btn_{i}"):
-                st.session_state.muro.pop(i)
-                st.rerun()
