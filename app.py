@@ -9,14 +9,18 @@ KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1
 
 @st.cache_resource
 def init_connection():
-    return create_client(URL, KEY)
+    try:
+        return create_client(URL, KEY)
+    except Exception as e:
+        st.error(f"Errore inizializzazione client: {e}")
+        return None
 
 supabase = init_connection()
 
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="Il Muro di Chatitaly", layout="wide")
 
-# --- CSS PER MURO DI MATTONI ---
+# CSS PER MATTONI E GRAFFITI
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Frijole&family=Nosifer&family=Rubik+Glitch&family=Special+Elite&display=swap');
@@ -26,9 +30,7 @@ st.markdown("""
         background-size: 58px 58px;
     }
     .neon-title {
-        font-family: 'Frijole', cursive;
-        color: #fff;
-        text-align: center;
+        font-family: 'Frijole', cursive; color: #fff; text-align: center;
         text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
         font-size: clamp(25px, 6vw, 60px);
     }
@@ -40,13 +42,14 @@ st.markdown("""
 # --- FUNZIONI DATABASE ---
 def carica_messaggi():
     try:
+        # Recupera i dati
         res = supabase.table("muro").select("*").order("id", desc=True).execute()
         return res.data
-    except:
+    except Exception as e:
+        st.error(f"⚠️ Errore nel caricamento: {e}")
         return []
 
 def spruzza():
-    # Usiamo .get per evitare l'AttributeError se i campi non sono ancora pronti
     testo = st.session_state.get("input_testo", "")
     nick = st.session_state.get("input_nick", "")
     
@@ -57,29 +60,36 @@ def spruzza():
             "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FF5E00", "#FFFFFF"]),
             "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'", "'Special Elite'"]),
             "rotazione": random.randint(-20, 20),
-            "font_size": random.randint(22, 55)
+            "font_size": random.randint(25, 50)
         }
         try:
-            supabase.table("muro").insert(nuovo_post).execute()
-            # Pulizia campi
-            st.session_state["input_testo"] = ""
+            # Inserimento
+            response = supabase.table("muro").insert(nuovo_post).execute()
+            if response.data:
+                st.session_state["input_testo"] = ""
+                # st.rerun()  # Forza aggiornamento se necessario
+            else:
+                st.warning("Il database non ha restituito dati dopo l'inserimento.")
         except Exception as e:
-            st.error(f"Errore database: {e}")
+            st.error(f"❌ Errore durante l'invio: {e}")
 
 # --- INTERFACCIA ---
 st.markdown("<h1 class='neon-title'>CHATITALY WALL</h1>", unsafe_allow_html=True)
 
-c1, c2, c3 = st.columns([1, 2, 1])
-with c2:
-    col_n, col_t = st.columns([1, 2])
-    # Definiamo i widget con le loro key
-    with col_n:
-        st.text_input("NICKNAME", key="input_nick", placeholder="Nome")
-    with col_t:
-        st.text_input("PENSIERO", key="input_testo", on_change=spruzza, placeholder="Scrivi e premi INVIO")
+with st.container():
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        col_n, col_t = st.columns([1, 2])
+        with col_n:
+            st.text_input("NICKNAME", key="input_nick", placeholder="Nome")
+        with col_t:
+            st.text_input("PENSIERO", key="input_testo", on_change=spruzza, placeholder="Scrivi e premi INVIO")
 
-# --- IL MURO ---
+st.write("---")
+
+# --- VISUALIZZAZIONE MURO ---
 messaggi = carica_messaggi()
+
 if messaggi:
     tags_html = "<div class='wall-container'>"
     for m in messaggi:
@@ -100,12 +110,17 @@ if messaggi:
     tags_html += "</div>"
     st.markdown(tags_html, unsafe_allow_html=True)
 else:
-    st.info("Il muro è pulito. Sii il primo a spruzzare!")
+    st.info("Il muro è pulito o non riesco a caricare i dati. Prova a scrivere qualcosa!")
 
 # --- ADMIN ---
 with st.sidebar:
-    pw = st.text_input("Admin", type="password")
+    st.header("Admin Panel")
+    pw = st.text_input("Password", type="password")
     if pw == "chatitaly123":
-        if st.button("RESET MURO"):
-            supabase.table("muro").delete().neq("id", 0).execute()
-            st.rerun()
+        if st.button("SVUOTA MURO"):
+            try:
+                supabase.table("muro").delete().neq("id", 0).execute()
+                st.success("Muro ripulito!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Errore reset: {e}")
