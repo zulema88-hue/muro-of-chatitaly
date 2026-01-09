@@ -1,9 +1,8 @@
 import streamlit as st
 import random
-from supabase import create_client, Client
+from supabase import create_client
 
-# --- 1. CONNESSIONE SUPABASE ---
-# URL corretto dopo il controllo (wuwoysrv)
+# --- CONNESSIONE ---
 URL = "https://wumwurwuwoysrvutupde.supabase.co"
 KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1bXd1cnd1d295c3J2dXR1cGRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDgwMzIsImV4cCI6MjA4MzUyNDAzMn0.90s0KWQTOHb2fHdlgS4vvMNI-7iiDA-L0aR0qJ_5k7k"
 
@@ -13,147 +12,114 @@ def init_connection():
 
 supabase = init_connection()
 
-# --- 2. CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="Il Muro di Chatitaly", layout="wide")
 
-# CSS: Sfondo mattoni scuro e stile graffiti neon
+# --- STILE GRAFICO (CORRETTO E DIMENSIONI RIDOTTE) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Frijole&family=Nosifer&family=Rubik+Glitch&family=Special+Elite&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Frijole&family=Nosifer&family=Rubik+Glitch&display=swap');
     
     .stApp {
-        background-color: #0a0a0a;
-        background-image: 
-            linear-gradient(335deg, #050505 23px, transparent 23px),
-            linear-gradient(155deg, #080808 23px, transparent 23px),
-            linear-gradient(335deg, #050505 23px, transparent 23px),
-            linear-gradient(155deg, #080808 23px, transparent 23px);
-        background-size: 58px 58px;
+        background-color: #0e0e0e;
+        background-image: radial-gradient(#222 1px, transparent 1px);
+        background-size: 30px 30px;
     }
 
     .neon-title {
         font-family: 'Frijole', cursive;
         color: #fff;
         text-align: center;
-        text-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff;
-        font-size: clamp(30px, 8vw, 70px);
-        padding: 20px;
+        text-shadow: 0 0 10px #0ff, 0 0 20px #f0f;
+        font-size: 40px;
+        padding: 10px;
     }
 
     .wall-container {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        align-items: center;
-        gap: 25px;
-        padding: 40px;
-        min-height: 400px;
+        gap: 15px;
+        padding: 20px;
     }
 
     .graffiti-tag {
         display: inline-block;
-        padding: 10px;
-        transition: all 0.3s ease;
-        filter: drop-shadow(4px 4px 3px #000);
+        padding: 8px;
+        line-height: 1.1;
+        filter: drop-shadow(2px 2px 2px #000);
+        white-space: nowrap;
     }
 
-    .graffiti-tag:hover {
-        transform: scale(1.2) rotate(0deg) !important;
-        z-index: 100;
-        cursor: crosshair;
+    .author-tag {
+        font-size: 10px;
+        font-family: sans-serif;
+        display: block;
+        opacity: 0.4;
+        color: white;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. FUNZIONI DATABASE ---
 def carica_messaggi():
     try:
-        # Prende tutti i messaggi dalla tabella 'muro'
-        res = supabase.table("muro").select("*").order("id", desc=True).execute()
+        res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
         return res.data
-    except Exception as e:
+    except:
         return []
 
 def spruzza():
-    testo = st.session_state.get("input_testo", "")
-    nick = st.session_state.get("input_nick", "")
-    
-    if testo and testo.strip():
-        # Creazione del pacchetto dati (deve corrispondere alle colonne della tabella)
-        nuovo_post = {
-            "testo": testo.upper(),
-            "autore": nick.upper() if nick.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FF5E00", "#FFFFFF"]),
-            "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'", "'Special Elite'"]),
-            "rotazione": random.randint(-20, 20),
-            "font_size": random.randint(28, 55)
+    t = st.session_state.get("input_testo", "")
+    n = st.session_state.get("input_nick", "")
+    if t and t.strip():
+        data = {
+            "testo": t.upper(),
+            "autore": n.upper() if n.strip() else "ANONIMO",
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131"]),
+            "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'"]),
+            "rotazione": random.randint(-15, 15),
+            "font_size": random.randint(22, 38) # Scritte più piccole (prima era fino a 55)
         }
         try:
-            # Invio al database
-            supabase.table("muro").insert(nuovo_post).execute()
-            # Pulizia campo input
+            supabase.table("muro").insert(data).execute()
             st.session_state["input_testo"] = ""
-            st.rerun() # Forza il caricamento per vedere il messaggio subito
+            # RIMOSSO st.rerun() per togliere l'errore giallo
         except Exception as e:
-            st.error(f"Errore durante la scrittura: {e}")
+            st.error(f"Errore: {e}")
 
-# --- 4. INTERFACCIA ---
+# --- INTERFACCIA ---
 st.markdown("<h1 class='neon-title'>CHATITALY WALL</h1>", unsafe_allow_html=True)
 
-# Box di inserimento messaggi
-with st.container():
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        col_n, col_t = st.columns([1, 3])
-        with col_n:
-            st.text_input("NICK", key="input_nick", placeholder="Nome")
-        with col_t:
-            st.text_input("COSA VUOI SCRIVERE?", key="input_testo", on_change=spruzza, placeholder="Scrivi e premi INVIO")
+c1, c2, c3 = st.columns([1, 2, 1])
+with c2:
+    col_n, col_t = st.columns([1, 3])
+    with col_n:
+        st.text_input("NICK", key="input_nick", placeholder="Nome")
+    with col_t:
+        st.text_input("SCRIVI E INVIO", key="input_testo", on_change=spruzza, placeholder="Messaggio...")
 
-st.markdown("<hr style='border: 1px solid #333'>", unsafe_allow_html=True)
+st.markdown("<hr style='border: 0.5px solid #333'>", unsafe_allow_html=True)
 
-# --- 5. VISUALIZZAZIONE MURO ---
+# --- VISUALIZZAZIONE ---
 messaggi = carica_messaggi()
 
 if messaggi:
-    tags_html = "<div class='wall-container'>"
+    html = "<div class='wall-container'>"
     for m in messaggi:
-        # Recupero sicuro dei dati con .get() per evitare crash
-        t = m.get('testo', '')
-        a = m.get('autore', 'ANONIMO')
-        c = m.get('colore', '#fff')
-        f = m.get('font', 'sans-serif')
-        r = m.get('rotazione', 0)
-        s = m.get('font_size', 30)
+        # Recupero parametri o valori di default
+        txt = m.get('testo', '')
+        aut = m.get('autore', 'ANON')
+        col = m.get('colore', '#fff')
+        fnt = m.get('font', 'sans-serif')
+        rot = m.get('rotazione', 0)
+        siz = m.get('font_size', 25)
         
-        tags_html += f"""
-            <div class="graffiti-tag" style="
-                transform: rotate({r}deg);
-                color: {c};
-                font-family: {f}, cursive;
-                font-size: {s}px;
-                text-shadow: 2px 2px 4px #000, 0 0 10px {c}88;
-            ">
-                {t}
-                <div style="font-size: 10px; color: rgba(255,255,255,0.2); font-family: sans-serif; text-shadow: none;">
-                    BY {a}
-                </div>
-            </div>
+        html += f"""
+        <div class="graffiti-tag" style="transform: rotate({rot}deg); color: {col}; font-family: {fnt}, cursive; font-size: {siz}px;">
+            {txt}
+            <span class="author-tag">BY {aut}</span>
+        </div>
         """
-    tags_html += "</div>"
-    st.markdown(tags_html, unsafe_allow_html=True)
+    html += "</div>"
+    st.markdown(html, unsafe_allow_html=True)
 else:
-    st.info("🎨 Il muro è pulito. Sii il primo a spruzzare un graffito!")
-
-# --- 6. SIDEBAR ADMIN ---
-with st.sidebar:
-    st.title("🛡️ Admin")
-    pw = st.text_input("Password Moderazione", type="password")
-    if pw == "chatitaly123":
-        if st.button("RESET MURO"):
-            try:
-                supabase.table("muro").delete().neq("id", 0).execute()
-                st.success("Muro ripulito!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Errore: {e}")
+    st.info("Muro vuoto. Scrivi qualcosa!")
