@@ -14,54 +14,41 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Il Muro di Chatitaly", layout="wide")
 
-# --- CSS DEFINITIVO (PULITO E COPRENTE) ---
+# --- CSS (SUPER SICURO) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nosifer&family=Rubik+Glitch&display=swap');
 
-    .stApp {
-        background-color: #000000 !important;
-        background-image: radial-gradient(#333 1px, transparent 1px) !important;
-        background-size: 20px 20px !important;
-    }
-
+    .stApp { background-color: #000000 !important; }
+    
     .neon-title {
         font-family: 'Permanent Marker', cursive;
         color: #00ffff;
         text-align: center;
-        text-shadow: 0 0 10px #0ff, 0 0 20px #f0f;
-        font-size: 45px;
-        margin: 20px 0;
+        text-shadow: 0 0 10px #0ff;
+        font-size: 40px;
     }
 
-    .wall-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 15px;
-        padding: 30px;
-    }
-
-    .graffiti-tag {
+    /* Box per i messaggi */
+    .msg-box {
         display: inline-block;
+        margin: 10px;
         padding: 10px;
-        text-shadow: 2px 2px 0px #000;
-        text-align: center;
+        border-radius: 5px;
+        line-height: 1.2;
     }
 
-    .author-info {
-        font-family: sans-serif;
-        font-size: 11px;
-        color: rgba(255,255,255,0.4);
+    .author {
+        font-size: 10px;
+        color: #888;
         display: block;
-        margin-top: 4px;
     }
     </style>
     """, unsafe_allow_html=True)
 
 def carica_messaggi():
     try:
-        res = supabase.table("muro").select("*").order("id", desc=True).limit(30).execute()
+        res = supabase.table("muro").select("*").order("id", desc=True).limit(25).execute()
         return res.data
     except:
         return []
@@ -72,11 +59,11 @@ def spruzza():
     if t and t.strip():
         data = {
             "testo": t.upper(),
-            "autore": n.upper() if n.strip() else "ANONIMO",
+            "autore": n.upper(),
             "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131"]),
             "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'"]),
-            "rotazione": random.randint(-10, 10),
-            "font_size": random.randint(22, 32) # DIMENSIONE RIDOTTA
+            "rotazione": random.randint(-5, 5),
+            "font_size": random.randint(18, 28)
         }
         try:
             supabase.table("muro").insert(data).execute()
@@ -87,45 +74,43 @@ def spruzza():
 # --- INTERFACCIA ---
 st.markdown('<h1 class="neon-title">CHATITALY WALL</h1>', unsafe_allow_html=True)
 
-with st.container():
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        col_n, col_t = st.columns([1, 3])
-        with col_n:
-            st.text_input("NICK", key="input_nick", placeholder="Nick")
-        with col_t:
-            st.text_input("SCRIVI E INVIO", key="input_testo", on_change=spruzza, placeholder="Messaggio...")
+c1, c2, c3 = st.columns([1, 2, 1])
+with c2:
+    n = st.text_input("NICK", key="input_nick", placeholder="Il tuo nome")
+    t = st.text_input("MESSAGGIO", key="input_testo", on_change=spruzza, placeholder="Scrivi e premi Invio")
 
-st.markdown("<br><hr style='border: 0.5px solid #222'><br>", unsafe_allow_html=True)
+st.divider()
 
-# --- VISUALIZZAZIONE CORRETTA ---
+# --- VISUALIZZAZIONE ---
 messaggi = carica_messaggi()
 
 if messaggi:
-    # Costruiamo l'HTML in una variabile e poi lo stampiamo UNA VOLTA SOLA
-    html_wall = "<div class='wall-container'>"
+    # Usiamo un unico grande contenitore HTML per evitare che il codice si spezzi
+    contenuto_muro = "<div style='text-align: center;'>"
     for m in messaggi:
-        # Recupero sicuro dei valori
-        txt = m.get('testo', '')
-        aut = m.get('autore', 'ANON')
-        col = m.get('colore', '#FFF')
-        fnt = m.get('font', 'Arial')
+        testo = m.get('testo', '')
+        autore = m.get('autore', 'ANON')
+        colore = m.get('colore', '#FFF')
+        font = m.get('font', 'sans-serif')
+        size = m.get('font_size', 20)
         rot = m.get('rotazione', 0)
-        siz = m.get('font_size', 25)
         
-        html_wall += f"""
-        <div class="graffiti-tag" style="transform: rotate({rot}deg); color: {col}; font-family: {fnt}; font-size: {siz}px;">
-            {txt}
-            <span class="author-info">BY {aut}</span>
+        # Creiamo il singolo tag in modo pulito
+        tag = f"""
+        <div class="msg-box" style="transform: rotate({rot}deg); color: {colore}; font-family: {font}; font-size: {size}px;">
+            {testo}
+            <span class="author">BY {autore}</span>
         </div>
         """
-    html_wall += "</div>"
-    st.markdown(html_wall, unsafe_allow_html=True)
-else:
-    st.write("Muro vuoto...")
+        contenuto_muro += tag
+    
+    contenuto_muro += "</div>"
+    
+    # Stampiamo tutto il muro in un colpo solo
+    st.markdown(contenuto_muro, unsafe_allow_html=True)
 
-# Sezione Admin segreta nella sidebar
+# Admin
 if st.sidebar.text_input("Admin", type="password") == "chatitaly123":
-    if st.sidebar.button("PULISCI TUTTO"):
+    if st.sidebar.button("RESET"):
         supabase.table("muro").delete().neq("id", 0).execute()
         st.rerun()
