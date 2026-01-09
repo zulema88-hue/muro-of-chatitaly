@@ -14,47 +14,34 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Chatitaly Urban Wall", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CSS GENERALE ---
+# --- 2. CSS ---
 st.markdown("""
     <style>
     [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
-    
     .stApp {
         background-image: url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brickwork-pattern-block-stone-structure-backdrop-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg");
         background-size: cover;
         background-attachment: fixed;
     }
-    
     .neon-title {
         font-family: sans-serif;
         text-align: center;
         color: white;
-        text-shadow: 0 0 10px #FF00FF, 0 0 20px #00FFFF;
-        font-size: 40px;
+        text-shadow: 0 0 10px #FF00FF;
+        font-size: 35px;
         font-weight: 900;
-        padding: 20px;
-        background: rgba(0,0,0,0.6);
-        margin-bottom: 20px;
-        border-bottom: 2px solid #333;
+        padding: 15px;
+        background: rgba(0,0,0,0.7);
     }
-
     .stTextInput input, .stTextArea textarea {
         background-color: rgba(0,0,0,0.8) !important;
         color: #00FF00 !important;
         border: 1px solid #444 !important;
-        font-weight: bold;
     }
-    
     .stButton button {
         background-color: #FF00FF !important;
         color: white !important;
         font-weight: bold !important;
-        border: none !important;
-        width: 100%;
-    }
-    .stButton button:hover {
-        background-color: #00FFFF !important;
-        color: black !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -62,7 +49,7 @@ st.markdown("""
 # --- 3. CARICAMENTO DATI ---
 def carica_messaggi():
     try:
-        res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
+        res = supabase.table("muro").select("*").order("id", desc=True).limit(60).execute()
         return res.data
     except: return []
 
@@ -70,99 +57,83 @@ def carica_messaggi():
 st.markdown('<div class="neon-title">CHATITALY WALL</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([1, 2, 1])
-
 with c2:
-    # FORM DI INSERIMENTO
     with st.form("spruzza_form", clear_on_submit=True):
-        col_nick, col_msg = st.columns([1, 3])
-        
-        with col_nick:
-            default_nick = st.session_state.get("saved_nick", "")
-            nick_input = st.text_input("NICK", value=default_nick, placeholder="Chi sei?")
-        
-        with col_msg:
-            txt_input = st.text_area("MESSAGGIO (Canzoni OK)", height=80, placeholder="Scrivi qui... (Invio va a capo)")
+        col_n, col_m = st.columns([1, 3])
+        with col_n:
+            nick = st.text_input("NICK", value=st.session_state.get("saved_nick", ""), placeholder="Tag")
+        with col_m:
+            txt = st.text_area("MESSAGGIO", height=70, placeholder="Scrivi qui...")
+        submitted = st.form_submit_button("SPRUZZA 🎨")
 
-        submitted = st.form_submit_button("SPRUZZA SUL MURO 🎨")
-
-    if submitted and txt_input.strip():
-        st.session_state["saved_nick"] = nick_input
+    if submitted and txt.strip():
+        st.session_state["saved_nick"] = nick
+        lunghezza = len(txt)
         
-        lunghezza = len(txt_input)
-        
-        # LOGICA FONT
-        if lunghezza > 50:
-            f_size = random.randint(16, 19)
-            rot = random.randint(-1, 1)
-            font_scelto = "'Patrick Hand', cursive"
+        # Ridimensionamento basato sulla lunghezza (Più equilibrato)
+        if lunghezza > 100:
+            f_size, rot, font = random.randint(14, 16), random.randint(-1, 1), "'Patrick Hand', cursive"
+        elif lunghezza > 50:
+            f_size, rot, font = random.randint(17, 20), random.randint(-2, 2), "'Patrick Hand', cursive"
         elif lunghezza > 20:
-            f_size = random.randint(20, 26)
-            rot = random.randint(-3, 3)
-            font_scelto = "'Permanent Marker', cursive"
+            f_size, rot, font = random.randint(22, 26), random.randint(-4, 4), "'Permanent Marker', cursive"
         else:
-            f_size = random.randint(30, 45)
-            rot = random.randint(-6, 6)
-            font_scelto = "'Rock Salt', cursive"
+            # Testi corti ora non superano i 35px (prima erano 45-50)
+            f_size, rot, font = random.randint(28, 35), random.randint(-8, 8), "'Rock Salt', cursive"
 
         data = {
-            "testo": txt_input,
-            "autore": nick_input.upper() if nick_input.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#FFA500"]),
-            "font": font_scelto,
+            "testo": txt,
+            "autore": nick.upper() if nick.strip() else "ANONIMO",
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
+            "font": font,
             "rotazione": rot,
             "font_size": f_size
         }
-        
         try:
             supabase.table("muro").insert(data).execute()
             st.rerun()
-        except:
-            st.error("Errore di connessione")
+        except: st.error("Errore invio")
 
-# --- 5. IL MURO (CORRETTO) ---
+# --- 5. IL MURO DINAMICO ---
 messaggi = carica_messaggi()
+count = len(messaggi)
 
 if messaggi:
-    # Qui c'era l'errore. Ho diviso la stringa per evitare problemi.
+    # LOGICA DI ADATTAMENTO: se ci sono molti messaggi (>20), rimpicciolisci tutto del 20%
+    scala = 0.8 if count > 20 else 1.0
+
     style_block = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; background: transparent; }
         .wall-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: flex-start;
-            gap: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
             padding: 20px;
+            align-items: center;
         }
         .graffiti-box {
-            display: inline-block;
-            background: rgba(0,0,0,0.2);
-            padding: 15px;
-            border-radius: 4px;
+            padding: 10px;
             text-align: center;
-            filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.5));
-            max-width: 350px;
+            filter: drop-shadow(3px 3px 1px rgba(0,0,0,0.8));
             white-space: pre-wrap;
             word-wrap: break-word;
-            line-height: 1.3;
+            line-height: 1.2;
+            transition: all 0.3s;
         }
+        .graffiti-box:hover { transform: scale(1.1) rotate(0deg) !important; z-index: 10; }
         .author {
-            display: block;
-            font-family: sans-serif;
-            font-size: 10px;
-            color: #ccc;
-            margin-top: 10px;
-            text-transform: uppercase;
-            border-top: 1px dashed rgba(255,255,255,0.3);
-            padding-top: 5px;
+            display: block; font-family: sans-serif; font-size: 9px;
+            color: #888; margin-top: 5px; text-transform: uppercase;
         }
     </style>
     """
     
     content_html = ""
     for m in messaggi:
+        # Applichiamo la scala di adattamento
+        current_size = int(m['font_size'] * scala)
         clean_text = str(m['testo']).replace("<", "&lt;")
         
         content_html += f"""
@@ -170,19 +141,18 @@ if messaggi:
             transform: rotate({m['rotazione']}deg); 
             color: {m['colore']}; 
             font-family: {m['font']}; 
-            font-size: {m['font_size']}px;">
+            font-size: {current_size}px;">
             {clean_text}
             <span class="author">BY {m['autore']}</span>
         </div>
         """
     
     final_html = f"{style_block}<div class='wall-container'>{content_html}</div>"
-    st.components.v1.html(final_html, height=800, scrolling=True)
+    st.components.v1.html(final_html, height=1200, scrolling=True)
 
 # Admin
-st.markdown("<br><hr style='opacity:0.1'>", unsafe_allow_html=True)
-with st.expander("Area Riservata"):
-    if st.text_input("Password Admin", type="password") == "chatitaly123":
-        if st.button("PULISCI TUTTO"):
+with st.expander("Admin"):
+    if st.text_input("Psw", type="password") == "chatitaly123":
+        if st.button("RESET"):
             supabase.table("muro").delete().neq("id", 0).execute()
             st.rerun()
