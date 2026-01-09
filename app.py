@@ -1,26 +1,22 @@
 import streamlit as st
 import random
-from datetime import datetime
 from supabase import create_client, Client
 
-# --- 1. CONNESSIONE SUPABASE (URL CORRETTO) ---
+# --- 1. CONNESSIONE SUPABASE ---
+# URL corretto dopo il controllo (wuwoysrv)
 URL = "https://wumwurwuwoysrvutupde.supabase.co"
 KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1bXd1cnd1d295c3J2dXR1cGRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDgwMzIsImV4cCI6MjA4MzUyNDAzMn0.90s0KWQTOHb2fHdlgS4vvMNI-7iiDA-L0aR0qJ_5k7k"
 
 @st.cache_resource
 def init_connection():
-    try:
-        return create_client(URL, KEY)
-    except Exception as e:
-        st.error(f"Errore connessione: {e}")
-        return None
+    return create_client(URL, KEY)
 
 supabase = init_connection()
 
 # --- 2. CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="Il Muro di Chatitaly", layout="wide")
 
-# CSS: Sfondo mattoni e stile graffiti
+# CSS: Sfondo mattoni scuro e stile graffiti neon
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Frijole&family=Nosifer&family=Rubik+Glitch&family=Special+Elite&display=swap');
@@ -41,7 +37,7 @@ st.markdown("""
         text-align: center;
         text-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff;
         font-size: clamp(30px, 8vw, 70px);
-        margin-bottom: 20px;
+        padding: 20px;
     }
 
     .wall-container {
@@ -49,7 +45,7 @@ st.markdown("""
         flex-wrap: wrap;
         justify-content: center;
         align-items: center;
-        gap: 20px;
+        gap: 25px;
         padding: 40px;
         min-height: 400px;
     }
@@ -62,19 +58,20 @@ st.markdown("""
     }
 
     .graffiti-tag:hover {
-        transform: scale(1.4) rotate(0deg) !important;
-        z-index: 1000;
+        transform: scale(1.2) rotate(0deg) !important;
+        z-index: 100;
+        cursor: crosshair;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. LOGICA DATABASE ---
+# --- 3. FUNZIONI DATABASE ---
 def carica_messaggi():
     try:
+        # Prende tutti i messaggi dalla tabella 'muro'
         res = supabase.table("muro").select("*").order("id", desc=True).execute()
         return res.data
     except Exception as e:
-        st.error(f"⚠️ Errore caricamento: {e}")
         return []
 
 def spruzza():
@@ -82,6 +79,7 @@ def spruzza():
     nick = st.session_state.get("input_nick", "")
     
     if testo and testo.strip():
+        # Creazione del pacchetto dati (deve corrispondere alle colonne della tabella)
         nuovo_post = {
             "testo": testo.upper(),
             "autore": nick.upper() if nick.strip() else "ANONIMO",
@@ -91,14 +89,18 @@ def spruzza():
             "font_size": random.randint(28, 55)
         }
         try:
+            # Invio al database
             supabase.table("muro").insert(nuovo_post).execute()
-            st.session_state["input_testo"] = "" # Svuota il campo
+            # Pulizia campo input
+            st.session_state["input_testo"] = ""
+            st.rerun() # Forza il caricamento per vedere il messaggio subito
         except Exception as e:
-            st.error(f"❌ Errore scrittura: {e}")
+            st.error(f"Errore durante la scrittura: {e}")
 
 # --- 4. INTERFACCIA ---
 st.markdown("<h1 class='neon-title'>CHATITALY WALL</h1>", unsafe_allow_html=True)
 
+# Box di inserimento messaggi
 with st.container():
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
@@ -106,16 +108,17 @@ with st.container():
         with col_n:
             st.text_input("NICK", key="input_nick", placeholder="Nome")
         with col_t:
-            st.text_input("SCRIVI SUL MURO", key="input_testo", on_change=spruzza, placeholder="Premi INVIO")
+            st.text_input("COSA VUOI SCRIVERE?", key="input_testo", on_change=spruzza, placeholder="Scrivi e premi INVIO")
 
-st.write("---")
+st.markdown("<hr style='border: 1px solid #333'>", unsafe_allow_html=True)
 
-# --- 5. VISUALIZZAZIONE ---
+# --- 5. VISUALIZZAZIONE MURO ---
 messaggi = carica_messaggi()
 
 if messaggi:
     tags_html = "<div class='wall-container'>"
     for m in messaggi:
+        # Recupero sicuro dei dati con .get() per evitare crash
         t = m.get('testo', '')
         a = m.get('autore', 'ANONIMO')
         c = m.get('colore', '#fff')
@@ -132,7 +135,7 @@ if messaggi:
                 text-shadow: 2px 2px 4px #000, 0 0 10px {c}88;
             ">
                 {t}
-                <div style="font-size: 10px; color: rgba(255,255,255,0.1); font-family: sans-serif;">
+                <div style="font-size: 10px; color: rgba(255,255,255,0.2); font-family: sans-serif; text-shadow: none;">
                     BY {a}
                 </div>
             </div>
@@ -140,16 +143,17 @@ if messaggi:
     tags_html += "</div>"
     st.markdown(tags_html, unsafe_allow_html=True)
 else:
-    st.info("🎨 Il muro è pulito. Sii il primo a taggare!")
+    st.info("🎨 Il muro è pulito. Sii il primo a spruzzare un graffito!")
 
-# --- 6. ADMIN ---
+# --- 6. SIDEBAR ADMIN ---
 with st.sidebar:
-    st.title("Moderazione")
-    password = st.text_input("Password", type="password")
-    if password == "chatitaly123":
+    st.title("🛡️ Admin")
+    pw = st.text_input("Password Moderazione", type="password")
+    if pw == "chatitaly123":
         if st.button("RESET MURO"):
             try:
                 supabase.table("muro").delete().neq("id", 0).execute()
+                st.success("Muro ripulito!")
                 st.rerun()
-            except:
-                st.error("Errore reset")
+            except Exception as e:
+                st.error(f"Errore: {e}")
