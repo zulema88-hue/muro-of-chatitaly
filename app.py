@@ -14,93 +14,140 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Chatitaly Urban Wall", layout="wide", initial_sidebar_state="collapsed")
 
-# --- CSS PER NASCONDERE TUTTO IL NECESSARIO ---
+# --- CSS BASE ---
 st.markdown("""
     <style>
     [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
+    
     .stApp {
         background-image: url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brickwork-pattern-block-stone-structure-backdrop-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg");
         background-size: cover;
         background-attachment: fixed;
     }
+    
+    /* Titolo */
+    .neon-title {
+        font-family: sans-serif;
+        text-align: center;
+        color: white;
+        text-shadow: 0 0 10px #FF00FF;
+        font-size: 40px;
+        font-weight: bold;
+        padding: 20px;
+        background: rgba(0,0,0,0.5);
+    }
+
+    /* Input Box più grandi per scrivere canzoni */
+    .stTextArea textarea {
+        background-color: rgba(0,0,0,0.8) !important;
+        color: #00FFFF !important;
+        border: 1px solid #555 !important;
+        font-size: 16px;
+    }
     .stTextInput input {
         background-color: rgba(0,0,0,0.8) !important;
         color: #39FF14 !important;
-        border: 1px solid #333 !important;
+        border: 1px solid #555 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 def carica_messaggi():
     try:
-        res = supabase.table("muro").select("*").order("id", desc=True).limit(40).execute()
+        res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
         return res.data
     except: return []
 
 def spruzza():
     t = st.session_state.get("input_testo", "")
     n = st.session_state.get("input_nick", "")
+    
     if t and t.strip():
+        lunghezza = len(t)
+        
+        # --- LOGICA INTELLIGENTE ---
+        # Se il testo è lungo (> 50 caratteri), font piccolo e poca rotazione
+        if lunghezza > 50:
+            f_size = random.randint(16, 20) # Piccolo per le canzoni
+            rot = random.randint(-2, 2)     # Quasi dritto per leggere meglio
+            font_scelto = "'Patrick Hand', cursive" # Font leggibile
+        # Se il testo è medio (20-50 caratteri)
+        elif lunghezza > 20:
+            f_size = random.randint(22, 28)
+            rot = random.randint(-5, 5)
+            font_scelto = "'Permanent Marker', cursive"
+        # Se il testo è corto (un saluto veloce)
+        else:
+            f_size = random.randint(35, 50) # Grande!
+            rot = random.randint(-10, 10)
+            font_scelto = "'Rock Salt', cursive"
+
         data = {
-            "testo": t.upper(),
+            "testo": t, # Tolto .upper() per lasciare minuscole le canzoni se vuoi
             "autore": n.upper() if n.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
-            "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'", "'Rock Salt'"]),
-            "rotazione": random.randint(-12, 12),
-            "font_size": random.randint(28, 45)
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#FFA500"]),
+            "font": font_scelto,
+            "rotazione": rot,
+            "font_size": f_size
         }
         try:
             supabase.table("muro").insert(data).execute()
-            st.session_state["input_testo"] = ""
+            st.session_state["input_testo"] = "" # Pulisce il campo
         except: pass
 
 # --- UI ---
-st.markdown("<h1 style='text-align:center; color:white; font-family:sans-serif; text-shadow: 0 0 10px #0ff;'>CHATITALY WALL</h1>", unsafe_allow_html=True)
+st.markdown('<div class="neon-title">CHATITALY WALL</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([1, 2, 1])
 with c2:
-    col1, col2 = st.columns([1, 3])
-    with col1: st.text_input("TAG", key="input_nick", placeholder="Nick")
-    with col2: st.text_input("MESSAGGIO", key="input_testo", on_change=spruzza, placeholder="Scrivi e premi Invio...")
+    st.text_input("NICKNAME", key="input_nick", placeholder="Chi sei?")
+    # Cambiato in TEXT AREA per permettere testi più lunghi e comodi
+    st.text_area("SCRIVI QUI (Vai a capo per le canzoni)", key="input_testo", height=100, placeholder="Scrivi il tuo messaggio o incolla una canzone...")
+    st.button("SPRUZZA SUL MURO", on_click=spruzza, use_container_width=True)
 
-# --- IL MURO (VERSIONE BLINDATA) ---
+# --- VISUALIZZAZIONE MURO ---
 messaggi = carica_messaggi()
 
 if messaggi:
-    # Costruiamo il blocco HTML con i font inclusi
+    # HTML Blindato
     html_muro = """
-    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nosifer&family=Rubik+Glitch&family=Rock+Salt&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
-        .wall { 
-            display: flex; flex-wrap: wrap; justify-content: center; 
-            align-items: center; gap: 30px; padding: 20px; 
+        body { margin: 0; padding: 0; background: transparent; }
+        .wall-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start; /* Allinea in alto */
+            gap: 20px;
+            padding: 20px;
+        }
+        .graffiti-box {
+            display: inline-block;
+            padding: 15px;
+            text-align: center;
+            /* Ombra nera per staccare dal muro */
+            filter: drop-shadow(4px 4px 2px rgba(0,0,0,0.9));
+            /* Forza il testo ad andare a capo */
+            max-width: 300px;
+            word-wrap: break-word;
+            white-space: pre-wrap; 
+            line-height: 1.2;
+        }
+        .author {
+            display: block;
             font-family: sans-serif;
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .tag { 
-            text-align: center; line-height: 1; 
-            filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.8));
-        }
-        .auth { font-size: 11px; opacity: 0.6; display: block; margin-top: 5px; font-family: sans-serif; color: white; }
     </style>
-    <div class="wall">
+    <div class="wall-container">
     """
     
     for m in messaggi:
-        html_muro += f"""
-        <div class="tag" style="transform: rotate({m['rotazione']}deg); color: {m['colore']}; font-family: {m['font']}; font-size: {m['font_size']}px;">
-            {m['testo']}
-            <span class="auth">BY {m['autore']}</span>
-        </div>
-        """
-    
-    html_muro += "</div>"
-    
-    # Questo comando isola l'HTML e impedisce a Streamlit di romperlo
-    st.components.v1.html(html_muro, height=600, scrolling=True)
-
-# Admin
-with st.expander("Admin"):
-    if st.text_input("Psw", type="password") == "chatitaly123":
-        if st.button("RESET"):
-            supabase.table("muro").delete().neq("id", 0).execute()
-            st.rerun()
+        # Recupero dati
+        txt = m.get('testo', '')
+        # Sostituiamo gli a capo (\n) con <br> per l
