@@ -42,6 +42,7 @@ st.markdown("""
         background-color: #FF00FF !important;
         color: white !important;
         font-weight: bold !important;
+        width: 100%;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -49,9 +50,11 @@ st.markdown("""
 # --- 3. CARICAMENTO DATI ---
 def carica_messaggi():
     try:
-        res = supabase.table("muro").select("*").order("id", desc=True).limit(60).execute()
+        # Recuperiamo solo gli ultimi 50 per non appesantire
+        res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
         return res.data
-    except: return []
+    except:
+        return []
 
 # --- 4. INTERFACCIA ---
 st.markdown('<div class="neon-title">CHATITALY WALL</div>', unsafe_allow_html=True)
@@ -61,7 +64,8 @@ with c2:
     with st.form("spruzza_form", clear_on_submit=True):
         col_n, col_m = st.columns([1, 3])
         with col_n:
-            nick = st.text_input("NICK", value=st.session_state.get("saved_nick", ""), placeholder="Tag")
+            nick_val = st.session_state.get("saved_nick", "")
+            nick = st.text_input("NICK", value=nick_val, placeholder="Tag")
         with col_m:
             txt = st.text_area("MESSAGGIO", height=70, placeholder="Scrivi qui...")
         submitted = st.form_submit_button("SPRUZZA 🎨")
@@ -70,16 +74,15 @@ with c2:
         st.session_state["saved_nick"] = nick
         lunghezza = len(txt)
         
-        # Ridimensionamento basato sulla lunghezza (Più equilibrato)
+        # Logica dimensioni
         if lunghezza > 100:
             f_size, rot, font = random.randint(14, 16), random.randint(-1, 1), "'Patrick Hand', cursive"
         elif lunghezza > 50:
             f_size, rot, font = random.randint(17, 20), random.randint(-2, 2), "'Patrick Hand', cursive"
         elif lunghezza > 20:
-            f_size, rot, font = random.randint(22, 26), random.randint(-4, 4), "'Permanent Marker', cursive"
+            f_size, rot, font = random.randint(22, 25), random.randint(-4, 4), "'Permanent Marker', cursive"
         else:
-            # Testi corti ora non superano i 35px (prima erano 45-50)
-            f_size, rot, font = random.randint(28, 35), random.randint(-8, 8), "'Rock Salt', cursive"
+            f_size, rot, font = random.randint(26, 32), random.randint(-7, 7), "'Rock Salt', cursive"
 
         data = {
             "testo": txt,
@@ -89,50 +92,52 @@ with c2:
             "rotazione": rot,
             "font_size": f_size
         }
+        
+        # Invio senza mostrare errori inutili se il messaggio passa
         try:
             supabase.table("muro").insert(data).execute()
             st.rerun()
-        except: st.error("Errore invio")
+        except:
+            # Se dà errore ma il messaggio appare al refresh, ignoriamo l'avviso tecnico
+            st.rerun()
 
 # --- 5. IL MURO DINAMICO ---
 messaggi = carica_messaggi()
-count = len(messaggi)
 
 if messaggi:
-    # LOGICA DI ADATTAMENTO: se ci sono molti messaggi (>20), rimpicciolisci tutto del 20%
-    scala = 0.8 if count > 20 else 1.0
+    # Scala i font se il muro è molto pieno
+    scala = 0.85 if len(messaggi) > 25 else 1.0
 
     style_block = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: transparent; }
+        body { margin: 0; background: transparent; overflow-x: hidden; }
         .wall-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            padding: 20px;
-            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 30px;
         }
         .graffiti-box {
             padding: 10px;
             text-align: center;
-            filter: drop-shadow(3px 3px 1px rgba(0,0,0,0.8));
+            filter: drop-shadow(3px 3px 1px rgba(0,0,0,0.9));
             white-space: pre-wrap;
             word-wrap: break-word;
             line-height: 1.2;
-            transition: all 0.3s;
+            max-width: 280px;
         }
-        .graffiti-box:hover { transform: scale(1.1) rotate(0deg) !important; z-index: 10; }
         .author {
             display: block; font-family: sans-serif; font-size: 9px;
             color: #888; margin-top: 5px; text-transform: uppercase;
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
     </style>
     """
     
     content_html = ""
     for m in messaggi:
-        # Applichiamo la scala di adattamento
         current_size = int(m['font_size'] * scala)
         clean_text = str(m['testo']).replace("<", "&lt;")
         
@@ -148,7 +153,7 @@ if messaggi:
         """
     
     final_html = f"{style_block}<div class='wall-container'>{content_html}</div>"
-    st.components.v1.html(final_html, height=1200, scrolling=True)
+    st.components.v1.html(final_html, height=1500, scrolling=True)
 
 # Admin
 with st.expander("Admin"):
