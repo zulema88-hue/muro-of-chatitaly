@@ -14,82 +14,78 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Chatitaly Urban Wall", layout="wide")
 
-# --- CSS: MURO REALE E EFFETTO SPRAY ---
+# --- CSS: MURO REALE (MATTONI VERI) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nosifer&family=Rubik+Glitch&family=Rock+Salt&display=swap');
     
-    /* SFONDO CON IMMAGINE DI MATTONI REALI */
+    /* SFONDO CON MATTONI VERI - LINK AGGIORNATO E SICURO */
     .stApp {
-        background-image: url("https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80");
+        background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                          url("https://www.transparenttextures.com/patterns/dark-brick-wall.png"),
+                          url("https://images.unsplash.com/photo-1590247813693-5541d1c609fd?q=80&w=2070&auto=format&fit=crop");
         background-size: cover;
         background-attachment: fixed;
+        background-color: #111;
     }
 
-    /* TITOLO NEON SOPRA IL MURO */
     .neon-title {
         font-family: 'Permanent Marker', cursive;
         color: #fff;
         text-align: center;
-        text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
-        font-size: 60px;
-        padding: 20px;
-        background: rgba(0,0,0,0.3);
+        text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff;
+        font-size: 55px;
+        padding: 15px;
     }
 
-    /* CONTENITORE TRASPARENTE PER I GRAFFITI */
     .wall-area {
-        min-height: 600px;
-        padding: 50px;
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        align-items: center;
-        gap: 40px;
+        gap: 35px;
+        padding: 50px;
     }
 
-    /* EFFETTO SCRITTA VERNICIATA */
     .graffiti {
         display: inline-block;
-        filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.9)); /* Ombra per profondità */
-        white-space: pre-wrap;
-        max-width: 300px;
-        line-height: 1;
+        filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.7));
+        line-height: 1.1;
+        text-align: center;
     }
 
     .nick-label {
-        font-family: 'Courier New', monospace;
+        font-family: sans-serif;
         font-size: 10px;
         display: block;
-        opacity: 0.6;
+        opacity: 0.5;
         color: white;
-        text-shadow: 1px 1px 1px #000;
     }
 
-    /* STILIZZAZIONE INPUT BOX */
-    div[data-baseweb="input"] {
-        background-color: rgba(0,0,0,0.7) !important;
-        border-radius: 10px !important;
+    /* Rende i box di input più leggibili sul muro */
+    .stTextInput > div > div > input {
+        background-color: rgba(0,0,0,0.8) !important;
+        color: white !important;
+        border: 1px solid #ff00ff !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 def carica_messaggi():
     try:
-        res = supabase.table("muro").select("*").order("id", desc=True).limit(35).execute()
+        res = supabase.table("muro").select("*").order("id", desc=True).limit(30).execute()
         return res.data
     except: return []
 
 def spruzza():
     t = st.session_state.get("input_testo", "")
-    n = st.session_state.get("input_nick", "ANON")
+    n = st.session_state.get("input_nick", "")
     if t and t.strip():
         data = {
             "testo": t.upper(),
             "autore": n.upper() if n.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#00FF7F"]),
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
             "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'", "'Rock Salt'"]),
-            "rotazione": random.randint(-15, 15),
+            "rotazione": random.randint(-12, 12),
             "font_size": random.randint(25, 45)
         }
         try:
@@ -102,15 +98,14 @@ st.markdown('<h1 class="neon-title">CHATITALY WALL</h1>', unsafe_allow_html=True
 
 c1, c2, c3 = st.columns([1, 2, 1])
 with c2:
-    st.text_input("NICKNAME", key="input_nick", placeholder="Il tuo tag...")
-    st.text_input("SCRIVI SUL MURO", key="input_testo", on_change=spruzza, placeholder="Premi Invio per spruzzare!")
-
-st.markdown("<div class='wall-area'>", unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 2])
+    with col1: st.text_input("TAG", key="input_nick", placeholder="Nick")
+    with col2: st.text_input("SCRIVI SUL MURO", key="input_testo", on_change=spruzza, placeholder="Messaggio...")
 
 # --- RENDERING GRAFFITI ---
 messaggi = carica_messaggi()
 if messaggi:
-    html_tags = ""
+    html_tags = "<div class='wall-area'>"
     for m in messaggi:
         txt = str(m.get('testo', ''))
         aut = str(m.get('autore', 'ANON'))
@@ -125,13 +120,12 @@ if messaggi:
             <span class="nick-label">BY {aut}</span>
         </div>
         """
+    html_tags += "</div>"
     st.markdown(html_tags, unsafe_allow_html=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
 
 # Admin Sidebar
 with st.sidebar:
-    if st.text_input("Moderazione", type="password") == "chatitaly123":
-        if st.button("Pulisci Muro"):
+    if st.text_input("Admin", type="password") == "chatitaly123":
+        if st.button("RESET"):
             supabase.table("muro").delete().neq("id", 0).execute()
             st.rerun()
