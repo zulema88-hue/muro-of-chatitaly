@@ -44,19 +44,27 @@ st.markdown("""
         font-weight: bold !important;
         width: 100%;
     }
+    /* Stile per la tabella di moderazione */
+    .mod-table { color: white; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. CARICAMENTO DATI ---
+# --- 3. FUNZIONI DATI ---
 def carica_messaggi():
     try:
-        # Recuperiamo solo gli ultimi 50 per non appesantire
         res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
         return res.data
-    except:
-        return []
+    except: return []
 
-# --- 4. INTERFACCIA ---
+def elimina_messaggio(msg_id):
+    try:
+        supabase.table("muro").delete().eq("id", msg_id).execute()
+        st.success(f"Messaggio {msg_id} eliminato!")
+        st.rerun()
+    except:
+        st.error("Errore durante l'eliminazione")
+
+# --- 4. INTERFACCIA UTENTE ---
 st.markdown('<div class="neon-title">CHATITALY WALL</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([1, 2, 1])
@@ -73,91 +81,55 @@ with c2:
     if submitted and txt.strip():
         st.session_state["saved_nick"] = nick
         lunghezza = len(txt)
-        
-        # Logica dimensioni
-        if lunghezza > 100:
-            f_size, rot, font = random.randint(14, 16), random.randint(-1, 1), "'Patrick Hand', cursive"
-        elif lunghezza > 50:
-            f_size, rot, font = random.randint(17, 20), random.randint(-2, 2), "'Patrick Hand', cursive"
-        elif lunghezza > 20:
-            f_size, rot, font = random.randint(22, 25), random.randint(-4, 4), "'Permanent Marker', cursive"
-        else:
-            f_size, rot, font = random.randint(26, 32), random.randint(-7, 7), "'Rock Salt', cursive"
+        if lunghezza > 100: f_size, rot, font = random.randint(14, 16), random.randint(-1, 1), "'Patrick Hand', cursive"
+        elif lunghezza > 50: f_size, rot, font = random.randint(17, 20), random.randint(-2, 2), "'Patrick Hand', cursive"
+        elif lunghezza > 20: f_size, rot, font = random.randint(22, 25), random.randint(-4, 4), "'Permanent Marker', cursive"
+        else: f_size, rot, font = random.randint(26, 32), random.randint(-7, 7), "'Rock Salt', cursive"
 
-        data = {
-            "testo": txt,
-            "autore": nick.upper() if nick.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
-            "font": font,
-            "rotazione": rot,
-            "font_size": f_size
-        }
-        
-        # Invio senza mostrare errori inutili se il messaggio passa
+        data = {"testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO", "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]), "font": font, "rotazione": rot, "font_size": f_size}
         try:
             supabase.table("muro").insert(data).execute()
             st.rerun()
-        except:
-            # Se dà errore ma il messaggio appare al refresh, ignoriamo l'avviso tecnico
-            st.rerun()
+        except: st.rerun()
 
-# --- 5. IL MURO DINAMICO ---
+# --- 5. IL MURO ---
 messaggi = carica_messaggi()
 
 if messaggi:
-    # Scala i font se il muro è molto pieno
     scala = 0.85 if len(messaggi) > 25 else 1.0
-
     style_block = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; background: transparent; overflow-x: hidden; }
-        .wall-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            padding: 30px;
-        }
-        .graffiti-box {
-            padding: 10px;
-            text-align: center;
-            filter: drop-shadow(3px 3px 1px rgba(0,0,0,0.9));
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.2;
-            max-width: 280px;
-        }
-        .author {
-            display: block; font-family: sans-serif; font-size: 9px;
-            color: #888; margin-top: 5px; text-transform: uppercase;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
+        .wall-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 30px; }
+        .graffiti-box { padding: 10px; text-align: center; filter: drop-shadow(3px 3px 1px rgba(0,0,0,0.9)); white-space: pre-wrap; word-wrap: break-word; line-height: 1.2; max-width: 280px; }
+        .author { display: block; font-family: sans-serif; font-size: 9px; color: #888; margin-top: 5px; text-transform: uppercase; border-top: 1px solid rgba(255,255,255,0.1); }
     </style>
     """
-    
     content_html = ""
     for m in messaggi:
         current_size = int(m['font_size'] * scala)
         clean_text = str(m['testo']).replace("<", "&lt;")
-        
-        content_html += f"""
-        <div class="graffiti-box" style="
-            transform: rotate({m['rotazione']}deg); 
-            color: {m['colore']}; 
-            font-family: {m['font']}; 
-            font-size: {current_size}px;">
-            {clean_text}
-            <span class="author">BY {m['autore']}</span>
-        </div>
-        """
+        content_html += f'<div class="graffiti-box" style="transform: rotate({m["rotazione"]}deg); color: {m["colore"]}; font-family: {m["font"]}; font-size: {current_size}px;">{clean_text}<span class="author">BY {m["autore"]}</span></div>'
     
-    final_html = f"{style_block}<div class='wall-container'>{content_html}</div>"
-    st.components.v1.html(final_html, height=1500, scrolling=True)
+    st.components.v1.html(f"{style_block}<div class='wall-container'>{content_html}</div>", height=1500, scrolling=True)
 
-# Admin
-with st.expander("Admin"):
-    if st.text_input("Psw", type="password") == "chatitaly123":
-        if st.button("RESET"):
+# --- 6. ADMIN MODERAZIONE SELETTIVA ---
+st.markdown("<br><hr style='opacity:0.1'>", unsafe_allow_html=True)
+with st.expander("🛡️ Moderazione Messaggi"):
+    pwd = st.text_input("Password Moderatore", type="password")
+    if pwd == "chatitaly123":
+        st.subheader("Gestione Graffiti")
+        if st.button("Svuota tutto il muro (Reset Totale)"):
             supabase.table("muro").delete().neq("id", 0).execute()
             st.rerun()
+        
+        st.write("---")
+        # Lista messaggi per eliminazione singola
+        for m in messaggi:
+            col_info, col_btn = st.columns([4, 1])
+            with col_info:
+                st.write(f"**{m['autore']}**: {m['testo'][:50]}...")
+            with col_btn:
+                if st.button(f"❌ Elimina", key=f"del_{m['id']}"):
+                    elimina_messaggio(m['id'])
