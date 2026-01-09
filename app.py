@@ -14,68 +14,19 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Chatitaly Urban Wall", layout="wide", initial_sidebar_state="collapsed")
 
-# --- CSS: MURO E RIMOZIONE SIDEBAR ---
+# --- CSS PER NASCONDERE TUTTO IL NECESSARIO ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nosifer&family=Rubik+Glitch&family=Rock+Salt&display=swap');
-    
-    # /* NASCONDE SIDEBAR E PULSANTI STREAMLIT */
-    [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, .st-emotion-cache-6q9sum {
-        display: none !important;
-    }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-
-    /* SFONDO MURO */
+    [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
     .stApp {
-        background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
-                          url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brickwork-pattern-block-stone-structure-backdrop-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg");
+        background-image: url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brickwork-pattern-block-stone-structure-backdrop-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg");
         background-size: cover;
         background-attachment: fixed;
-        background-position: center;
     }
-
-    .neon-title {
-        font-family: 'Permanent Marker', cursive;
-        color: #fff;
-        text-align: center;
-        text-shadow: 0 0 15px #ff00ff, 0 0 30px #00ffff;
-        font-size: clamp(40px, 10vw, 70px);
-        padding: 20px 0;
-    }
-
-    .wall-area {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 40px;
-        padding: 40px 10px;
-        min-height: 400px;
-    }
-
-    .graffiti {
-        display: inline-block;
-        filter: drop-shadow(4px 4px 2px rgba(0,0,0,0.8));
-        line-height: 1.1;
-        text-align: center;
-    }
-
-    .nick-label {
-        font-family: sans-serif;
-        font-size: 11px;
-        display: block;
-        opacity: 0.6;
-        color: #eee;
-        margin-top: 5px;
-    }
-
-    /* INPUT BOX STILE DARK */
-    .stTextInput > div > div > input {
+    .stTextInput input {
         background-color: rgba(0,0,0,0.8) !important;
         color: #39FF14 !important;
-        border: 2px solid #333 !important;
-        border-radius: 10px !important;
+        border: 1px solid #333 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -96,50 +47,60 @@ def spruzza():
             "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
             "font": random.choice(["'Permanent Marker'", "'Nosifer'", "'Rubik Glitch'", "'Rock Salt'"]),
             "rotazione": random.randint(-12, 12),
-            "font_size": random.randint(28, 48)
+            "font_size": random.randint(28, 45)
         }
         try:
             supabase.table("muro").insert(data).execute()
             st.session_state["input_testo"] = ""
         except: pass
 
-# --- INTERFACCIA ---
-st.markdown('<h1 class="neon-title">CHATITALY WALL</h1>', unsafe_allow_html=True)
+# --- UI ---
+st.markdown("<h1 style='text-align:center; color:white; font-family:sans-serif; text-shadow: 0 0 10px #0ff;'>CHATITALY WALL</h1>", unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([1, 2, 1])
 with c2:
     col1, col2 = st.columns([1, 3])
-    with col1: 
-        st.text_input("TAG", key="input_nick", placeholder="Nick")
-    with col2: 
-        st.text_input("SCRIVI SUL MURO", key="input_testo", on_change=spruzza, placeholder="Premi Invio...")
+    with col1: st.text_input("TAG", key="input_nick", placeholder="Nick")
+    with col2: st.text_input("MESSAGGIO", key="input_testo", on_change=spruzza, placeholder="Scrivi e premi Invio...")
 
-# --- VISUALIZZAZIONE MURO ---
+# --- IL MURO (VERSIONE BLINDATA) ---
 messaggi = carica_messaggi()
+
 if messaggi:
-    html_tags = "<div class='wall-area'>"
+    # Costruiamo il blocco HTML con i font inclusi
+    html_muro = """
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nosifer&family=Rubik+Glitch&family=Rock+Salt&display=swap" rel="stylesheet">
+    <style>
+        .wall { 
+            display: flex; flex-wrap: wrap; justify-content: center; 
+            align-items: center; gap: 30px; padding: 20px; 
+            font-family: sans-serif;
+        }
+        .tag { 
+            text-align: center; line-height: 1; 
+            filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.8));
+        }
+        .auth { font-size: 11px; opacity: 0.6; display: block; margin-top: 5px; font-family: sans-serif; color: white; }
+    </style>
+    <div class="wall">
+    """
+    
     for m in messaggi:
-        txt = str(m.get('testo', ''))
-        aut = str(m.get('autore', 'ANON'))
-        col = m.get('colore', '#FFF')
-        fnt = m.get('font', 'Arial')
-        siz = m.get('font_size', 30)
-        rot = m.get('rotazione', 0)
-        
-        html_tags += f"""
-        <div class="graffiti" style="transform: rotate({rot}deg); color: {col}; font-family: {fnt}; font-size: {siz}px;">
-            {txt}
-            <span class="nick-label">BY {aut}</span>
+        html_muro += f"""
+        <div class="tag" style="transform: rotate({m['rotazione']}deg); color: {m['colore']}; font-family: {m['font']}; font-size: {m['font_size']}px;">
+            {m['testo']}
+            <span class="auth">BY {m['autore']}</span>
         </div>
         """
-    html_tags += "</div>"
-    st.markdown(html_tags, unsafe_allow_html=True)
+    
+    html_muro += "</div>"
+    
+    # Questo comando isola l'HTML e impedisce a Streamlit di romperlo
+    st.components.v1.html(html_muro, height=600, scrolling=True)
 
-# --- ZONA ADMIN (IN FONDO, QUASI INVISIBILE) ---
-st.markdown("<br><br><br><br><br><hr style='opacity:0.1'>", unsafe_allow_html=True)
-with st.expander("Admin Panel"):
-    pw = st.text_input("Password", type="password")
-    if pw == "chatitaly123":
-        if st.button("RESET MURO"):
+# Admin
+with st.expander("Admin"):
+    if st.text_input("Psw", type="password") == "chatitaly123":
+        if st.button("RESET"):
             supabase.table("muro").delete().neq("id", 0).execute()
             st.rerun()
