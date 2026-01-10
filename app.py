@@ -15,6 +15,12 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Urban Graffiti Wall", layout="wide", initial_sidebar_state="collapsed")
 
+# Funzione per generare colori HEX casuali e vivaci
+def get_random_neon_color():
+    # Genera colori con alta saturazione per l'effetto neon
+    r = lambda: random.randint(100, 255)
+    return '#%02X%02X%02X' % (r(), r(), r())
+
 # --- 2. CSS CORE ---
 st.markdown("""
     <style>
@@ -34,20 +40,19 @@ st.markdown("""
         color: #FFFFFF;
         font-size: clamp(35px, 7vw, 60px);
         padding: 20px 0;
-        text-shadow: 2px 2px 0px #000, 0 0 15px #00FFFF;
+        text-shadow: 2px 2px 0px #000, 0 0 20px #FF00FF;
     }
 
-    /* BOMBOLETTE */
-    .can { width: 40px; height: 90px; border-radius: 6px; position: relative; border: 2px solid #222; box-shadow: 5px 5px 15px rgba(0,0,0,0.8); }
-    .can-cyan { background: linear-gradient(135deg, #00FFFF, #008888); }
-    .can-pink { background: linear-gradient(135deg, #FF00FF, #880088); }
+    .can { width: 40px; height: 90px; border-radius: 6px; position: relative; border: 2px solid #222; }
+    .can-left { background: linear-gradient(135deg, #00FFFF, #004444); }
+    .can-right { background: linear-gradient(135deg, #FF00FF, #440044); }
     .can::before { content: ''; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 20px; height: 10px; background: #333; border-radius: 3px; }
 
-    .mist { position: absolute; width: 120px; height: 120px; filter: blur(35px); opacity: 0.4; border-radius: 50%; z-index: 0; }
-    .mist-left { background: #00FFFF; top: -40px; left: -40px; }
-    .mist-right { background: #FF00FF; top: -40px; right: -40px; }
+    .mist { position: absolute; width: 150px; height: 150px; filter: blur(40px); opacity: 0.5; border-radius: 50%; z-index: 0; }
+    .mist-left { background: #00FFFF; top: -50px; left: -50px; }
+    .mist-right { background: #FF00FF; top: -50px; right: -50px; }
 
-    .stForm { background: rgba(0, 0, 0, 0.8) !important; border: 1px solid #444 !important; border-radius: 15px !important; position: relative; z-index: 2; }
+    .stForm { background: rgba(0, 0, 0, 0.85) !important; border: 1px solid #444 !important; border-radius: 15px !important; position: relative; z-index: 2; }
     ::-webkit-scrollbar { width: 0px; }
     </style>
     """, unsafe_allow_html=True)
@@ -57,13 +62,13 @@ st.markdown('<div class="graffiti-title">CHATITALY URBAN WALL</div>', unsafe_all
 c1, c2, c3 = st.columns([0.15, 0.7, 0.15])
 
 with c1:
-    st.markdown('<div style="height:80px"></div><div style="position:relative"><div class="mist mist-left"></div><div class="can can-cyan" style="transform:rotate(-15deg); margin-left:auto"></div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:80px"></div><div style="position:relative"><div class="mist mist-left"></div><div class="can can-left" style="transform:rotate(-15deg); margin-left:auto"></div></div>', unsafe_allow_html=True)
 
 with c2:
     with st.form("spray_form", clear_on_submit=True):
         col_n, col_m = st.columns([1, 2])
         nick = col_n.text_input("TAG", placeholder="Nickname")
-        txt = col_m.text_area("MESSAGGIO", height=70, placeholder="Spruzza qualcosa...")
+        txt = col_m.text_area("MESSAGGIO", height=70, placeholder="Spruzza un colore a caso...")
         submitted = st.form_submit_button("💨 BOMB THE WALL")
 
     if submitted and txt.strip():
@@ -72,19 +77,19 @@ with c2:
         elif l < 60: f_size, font = 28, "'Permanent Marker', cursive"
         else: f_size, font = 24, "'Gochi Hand', cursive"
 
-        # Colore forzato nel salvataggio
-        color_choice = random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#FFD700"])
+        # COLORE COMPLETAMENTE RANDOM PER OGNI MESSAGGIO
+        color_choice = get_random_neon_color()
         
         data = {
             "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
             "colore": color_choice,
-            "font": font, "rotazione": random.randint(-8, 8), "font_size": f_size
+            "font": font, "rotazione": random.randint(-10, 10), "font_size": f_size
         }
         supabase.table("muro").insert(data).execute()
         st.rerun()
 
 with c3:
-    st.markdown('<div style="height:80px"></div><div style="position:relative"><div class="mist mist-right"></div><div class="can can-pink" style="transform:rotate(15deg); margin-right:auto"></div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:80px"></div><div style="position:relative"><div class="mist mist-right"></div><div class="can can-right" style="transform:rotate(15deg); margin-right:auto"></div></div>', unsafe_allow_html=True)
 
 # --- 4. IL MURO ---
 try:
@@ -99,39 +104,44 @@ if messaggi:
     <style>
         .wall-canvas { display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center; padding: 60px 20px; width: 100%; }
         .graffito-item { position: relative; display: flex; flex-direction: column; align-items: center; margin: var(--m-top) var(--m-side); min-width: 250px; max-width: 450px; }
-        .paint-splatter { position: absolute; width: 180px; height: 180px; background: var(--c); filter: blur(60px); opacity: 0.25; z-index: 1; }
-        .text-neon { 
-            text-align: center; 
-            line-height: 1.1; 
-            word-wrap: break-word; 
-            z-index: 2; 
-            text-shadow: 2px 2px 2px #000, 0 0 10px var(--c); /* Shadow migliorata */
-            letter-spacing: -0.5px;
+        
+        .paint-splatter { 
+            position: absolute; width: 220px; height: 220px; 
+            background: var(--splat-c); filter: blur(70px); opacity: 0.3; z-index: 1; 
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
-        .drip { width: 3px; height: 40px; background: var(--c); margin-top: 5px; border-radius: 0 0 10px 10px; box-shadow: 0 0 10px var(--c); z-index: 2; }
-        .author { font-family: sans-serif; font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-top: 10px; letter-spacing: 2px; }
+        
+        .text-neon { 
+            text-align: center; line-height: 1.1; word-wrap: break-word; z-index: 2; 
+            text-shadow: 2px 2px 4px #000, 0 0 12px var(--c); letter-spacing: -0.5px;
+        }
+        
+        .drip { width: 3px; height: 45px; background: var(--c); margin-top: 5px; border-radius: 0 0 10px 10px; box-shadow: 0 0 10px var(--c); z-index: 2; }
+        .author { font-family: sans-serif; font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-top: 10px; letter-spacing: 2px; }
     </style>
     """
     
     content_html = ""
     for m in messaggi:
         random.seed(m['id'])
-        m_top = f"{random.randint(20, 80)}px"
-        m_side = f"{random.randint(10, 60)}px"
-        # Forzo il colore per ogni elemento per evitare bug
-        current_color = m.get("colore", "#00FFFF") 
+        m_top = f"{random.randint(20, 120)}px"
+        m_side = f"{random.randint(10, 100)}px"
+        
+        c = m.get("colore", "#FFFFFF")
+        # Generiamo un colore per lo splatter leggermente diverso o complementare basato sul seed
+        splat_c = get_random_neon_color() 
         
         content_html += f'''
-        <div class="graffito-item" style="--m-top: {m_top}; --m-side: {m_side}; --c: {current_color};">
-            <div class="paint-splatter" style="top: 10%; left: 10%;"></div>
-            <div class="text-neon" style="color: {current_color}; font-family: {m["font"]}; font-size: {m["font_size"]}px; transform: rotate({m["rotazione"]}deg);">
+        <div class="graffito-item" style="--m-top: {m_top}; --m-side: {m_side}; --c: {c}; --splat-c: {splat_c};">
+            <div class="paint-splatter"></div>
+            <div class="text-neon" style="color: {c}; font-family: {m["font"]}; font-size: {m["font_size"]}px; transform: rotate({m["rotazione"]}deg);">
                 {m["testo"].replace("<","&lt;")}
             </div>
             <div class="drip"></div>
             <div class="author">@{m["autore"]}</div>
         </div>
         '''
-    st.components.v1.html(f"{style_block}<div class='wall-canvas'>{content_html}</div>", height=3500, scrolling=False)
+    st.components.v1.html(f"{style_block}<div class='wall-canvas'>{content_html}</div>", height=4000, scrolling=False)
 
 # --- 5. MOD ---
 with st.expander("MOD"):
