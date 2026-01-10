@@ -16,30 +16,41 @@ supabase = init_connection()
 st.set_page_config(page_title="Urban Wall", layout="wide", initial_sidebar_state="collapsed")
 
 def random_neon():
-    # Colori neon vibranti ma solidi
     palette = ["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#FFD700", "#FF4500", "#7B68EE"]
     return random.choice(palette)
 
-# --- 2. CSS ---
+# --- 2. CSS TOTALE (PAGINA + IFRAME) ---
 st.markdown("""
     <style>
+    /* Nasconde header e footer Streamlit */
     header, footer, [data-testid="stSidebar"], [data-testid="stHeader"] { display: none !important; }
+    
+    /* Nasconde la scrollbar principale del browser */
+    html, body, [data-testid="stAppViewContainer"] {
+        overflow: hidden;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+    }
+    html::-webkit-scrollbar, body::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+
     .stApp {
         background-color: #050505;
         background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://www.transparenttextures.com/patterns/dark-brick-wall.png");
         background-attachment: fixed;
     }
+
     .graffiti-title {
         font-family: 'Rock Salt', cursive; text-align: center; color: white;
         font-size: 45px; padding: 20px; text-shadow: 0 0 15px #FF00FF;
     }
+
     .stForm { background: rgba(0,0,0,0.85) !important; border: 1px solid #333 !important; border-radius: 15px !important; }
     
-    /* BOMBOLETTE */
-    .can { width: 40px; height: 90px; border-radius: 6px; border: 2px solid #111; position: relative; }
+    /* Bombolette CSS */
+    .can { width: 38px; height: 85px; border-radius: 6px; border: 2px solid #111; position: relative; }
     .mist { position: absolute; width: 100px; height: 100px; filter: blur(40px); opacity: 0.4; border-radius: 50%; }
-    
-    ::-webkit-scrollbar { width: 0px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -68,14 +79,19 @@ with c2:
 with c3:
     st.markdown(f'<div style="position:relative;"><div class="mist" style="background:#FF00FF; top:-10px;"></div><div class="can" style="background:linear-gradient(#FF00FF, #550055); transform:rotate(12deg);"></div></div>', unsafe_allow_html=True)
 
-# --- 4. IL MURO (GRIGLIA SPARPARGLIATA MA LEGGIBILE) ---
+# --- 4. IL MURO ---
 res = supabase.table("muro").select("*").order("id", desc=True).limit(60).execute()
 messaggi = res.data
 
 if messaggi:
+    # CSS interno all'iframe per nascondere la scrollbar del componente HTML
     style = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Gochi+Hand&display=swap" rel="stylesheet">
     <style>
+        /* Nasconde scrollbar interna all'iframe */
+        ::-webkit-scrollbar { display: none; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+
         .wall-grid { 
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -84,25 +100,17 @@ if messaggi:
             align-items: center;
         }
         .graffito-card { 
-            position: relative; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
-            padding: 20px;
-            margin: var(--rand-m);
+            position: relative; display: flex; flex-direction: column; align-items: center;
+            padding: 20px; margin: var(--rand-m);
         }
         .splat-effect { 
             position: absolute; width: 180px; height: 180px; 
-            filter: blur(50px); opacity: 0.2; z-index: 1; 
-            background: var(--c);
+            filter: blur(50px); opacity: 0.2; z-index: 1; background: var(--c);
         }
         .text-spray { 
-            text-align: center; 
-            z-index: 2; 
-            /* Ombra naturale, niente bordini neri strani */
+            text-align: center; z-index: 2; 
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8), 0 0 10px var(--c);
-            line-height: 1.2;
-            word-wrap: break-word;
+            line-height: 1.2; word-wrap: break-word;
         }
         .drip-classic { width: 3px; height: 35px; margin-top: 5px; border-radius: 0 0 10px 10px; z-index: 2; opacity: 0.7; }
         .tag-name { color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 10px; font-family: sans-serif; }
@@ -113,7 +121,6 @@ if messaggi:
     for m in messaggi:
         random.seed(m['id']) 
         c = m.get('colore', random_neon())
-        # Spostamento leggero per rompere la simmetria senza sovrapporre tutto
         rand_m = f"{random.randint(0,30)}px {random.randint(0,30)}px"
         
         html_content += f'''
@@ -127,9 +134,10 @@ if messaggi:
         </div>
         '''
     
-    st.components.v1.html(f"{style}<div class='wall-grid'>{html_content}</div>", height=2000, scrolling=True)
+    # height elevata per contenere tutto, scorrimento fluido ma invisibile
+    st.components.v1.html(f"{style}<div class='wall-grid'>{html_content}</div>", height=3000, scrolling=True)
 
-# --- 5. ADMIN ---
+# --- 5. MOD ---
 with st.expander("MOD"):
     if st.text_input("Psw", type="password") == "chatitaly123":
         for m in messaggi:
