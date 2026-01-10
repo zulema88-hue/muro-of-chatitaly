@@ -15,49 +15,55 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Urban Neon Wall", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CSS CORE (MURO + NEON) ---
+# --- 2. CSS CORE (FIX SFONDO MATTONI) ---
 st.markdown("""
     <style>
+    /* Rimuove interfacce standard di Streamlit */
     [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
     
-    /* SFONDO MURO DI MATTONI */
-    .stApp {
-        background-image: url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg");
-        background-size: cover;
-        background-attachment: fixed;
-        background-position: center;
+    /* FORZA SFONDO SU TUTTI I LIVELLI */
+    .stApp, .main, .st-emotion-cache-z5fcl4 {
+        background: url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg") no-repeat center center fixed !important;
+        background-size: cover !important;
+    }
+
+    /* Overlay scuro per migliorare il contrasto neon */
+    .main::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: -1;
     }
 
     ::-webkit-scrollbar { width: 0px; }
-    * { scrollbar-width: none; }
-
+    
     .wall-title {
         font-family: 'Rock Salt', cursive;
         text-align: center;
         color: white;
-        font-size: 32px;
-        padding: 20px;
-        text-shadow: 0 0 10px #FF00FF, 0 0 20px #00FFFF;
+        font-size: 35px;
+        padding: 30px 0;
+        text-shadow: 0 0 15px #FF00FF, 0 0 30px #00FFFF;
     }
 
-    /* Form Input - Trasparente per non coprire troppo il muro */
     .stForm {
-        background: rgba(0,0,0,0.8) !important;
-        border: 2px solid #39FF14 !important;
+        background: rgba(0,0,0,0.7) !important;
+        border: 2px solid #00FFFF !important;
         border-radius: 15px !important;
-        margin-bottom: 30px;
+        backdrop-filter: blur(5px);
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. FUNZIONI DATI ---
+# --- 3. DATI ---
 def carica_messaggi():
     try:
         res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
         return res.data
     except: return []
 
-# --- 4. INTERFACCIA INPUT ---
+# --- 4. INPUT ---
 st.markdown('<div class="wall-title">CHATITALY URBAN WALL</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
@@ -65,14 +71,14 @@ with c2:
     with st.form("spray_form", clear_on_submit=True):
         col_n, col_m = st.columns([1, 2])
         nick = col_n.text_input("TAG", placeholder="Chi sei?")
-        txt = col_m.text_area("MESSAGGIO", height=70, placeholder="Spruzza la tua frase...")
+        txt = col_m.text_area("MESSAGGIO", height=70, placeholder="Cosa vuoi scrivere sul muro?")
         submitted = st.form_submit_button("💨 BOMB THE WALL!")
 
     if submitted and txt.strip():
         l = len(txt)
-        if l < 10: f_size, rot, font = random.randint(45, 60), random.randint(-15, 15), "'Rock Salt', cursive"
-        elif l < 60: f_size, rot, font = random.randint(28, 36), random.randint(-8, 8), "'Permanent Marker', cursive"
-        else: f_size, rot, font = random.randint(18, 23), random.randint(-4, 4), "'Patrick Hand', cursive"
+        if l < 10: f_size, rot, font = random.randint(45, 60), random.randint(-18, 18), "'Rock Salt', cursive"
+        elif l < 60: f_size, rot, font = random.randint(28, 36), random.randint(-10, 10), "'Permanent Marker', cursive"
+        else: f_size, rot, font = random.randint(18, 24), random.randint(-5, 5), "'Patrick Hand', cursive"
 
         data = {
             "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
@@ -82,7 +88,7 @@ with c2:
         try:
             supabase.table("muro").insert(data).execute()
             st.rerun()
-        except: st.rerun()
+        except: pass
 
 # --- 5. IL MURO SPARPARGLIATO ---
 messaggi = carica_messaggi()
@@ -95,9 +101,10 @@ if messaggi:
             flex-wrap: wrap;
             justify-content: space-around;
             align-items: center;
-            padding: 50px;
-            gap: 40px;
+            padding: 40px;
+            gap: 60px;
             width: 100%;
+            background: transparent !important;
         }
 
         .graffito {
@@ -106,32 +113,28 @@ if messaggi:
             text-align: center;
             white-space: pre-wrap;
             word-wrap: break-word;
-            line-height: 1.1;
-            /* NEON GLOW */
+            line-height: 1.2;
             color: var(--c);
             font-family: var(--f);
             font-size: var(--s);
-            text-shadow: 0 0 5px var(--c), 0 0 15px var(--c), 2px 2px 2px rgba(0,0,0,0.9);
+            /* Effetto Neon Spray */
+            text-shadow: 0 0 10px var(--c), 0 0 20px var(--c), 3px 3px 2px rgba(0,0,0,0.9);
             transform: rotate(var(--r));
             margin: var(--m);
             min-width: 180px;
             max-width: 450px;
-            transition: transform 0.3s;
+            transition: transform 0.2s;
         }
 
-        .graffito:hover {
-            transform: scale(1.1) rotate(0deg) !important;
-            z-index: 99;
-        }
-
-        .tag {
+        .tag-signature {
             display: block;
             font-family: sans-serif;
             font-size: 10px;
-            color: rgba(255,255,255,0.3);
-            margin-top: 8px;
-            text-shadow: none;
+            color: rgba(255,255,255,0.4);
+            margin-top: 10px;
+            text-transform: uppercase;
             letter-spacing: 1px;
+            text-shadow: none;
         }
     </style>
     """
@@ -139,7 +142,7 @@ if messaggi:
     content_html = ""
     for m in messaggi:
         random.seed(m['id'])
-        rand_m = f"{random.randint(-20, 20)}px {random.randint(-20, 20)}px"
+        rand_m = f"{random.randint(-30, 30)}px {random.randint(-20, 20)}px"
         
         content_html += f'''
         <div class="graffito" style="
@@ -149,11 +152,11 @@ if messaggi:
             --f: {m["font"]};
             --m: {rand_m};">
             {m["testo"].replace("<","&lt;")}
-            <span class="tag">@{m["autore"]}</span>
+            <span class="tag-signature">@{m["autore"]}</span>
         </div>
         '''
     
-    st.components.v1.html(f"{style_block}<div class='wall-canvas'>{content_html}</div>", height=2500, scrolling=False)
+    st.components.v1.html(f"{style_block}<div class='wall-canvas'>{content_html}</div>", height=2000, scrolling=False)
 
 # --- 6. ADMIN ---
 with st.expander("MOD"):
