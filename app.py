@@ -36,23 +36,45 @@ st.markdown("""
         background-attachment: fixed;
     }
 
+    /* TITOLO ACCATTIVANTE WILDSTYLE */
+    @keyframes flicker {
+        0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+        20%, 22%, 24%, 55% { opacity: 0.8; }
+    }
+
     .graffiti-title {
-        font-family: 'Rock Salt', cursive; text-align: center; color: white;
-        font-size: clamp(30px, 5vw, 45px); padding: 20px; text-shadow: 0 0 15px #FF00FF;
+        font-family: 'Rock Salt', cursive;
+        text-align: center;
+        font-size: clamp(40px, 8vw, 70px);
+        font-weight: 900;
+        padding: 30px 0;
+        margin-bottom: 10px;
+        background: linear-gradient(to bottom, #ffffff 40%, #aaaaaa 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.7));
+        text-shadow: 
+            3px 3px 0px #000, 
+            -1px -1px 0px #000,
+            1px -1px 0px #000,
+            -1px 1px 0px #000,
+            1px 1px 0px #000,
+            0 0 20px #FF00FF,
+            0 0 40px #FF00FF;
+        animation: flicker 3s infinite alternate;
+        letter-spacing: -2px;
     }
 
     .stForm { background: rgba(0,0,0,0.85) !important; border: 1px solid #333 !important; border-radius: 15px !important; }
 
-    /* BOMBOLETTE STYLE */
-    .can { width: 40px; height: 90px; border-radius: 6px; border: 2px solid #222; position: relative; box-shadow: 5px 5px 15px rgba(0,0,0,0.5); }
+    .can { width: 40px; height: 90px; border-radius: 6px; border: 2px solid #222; position: relative; }
     .can-cyan { background: linear-gradient(135deg, #00FFFF, #008888); }
     .can-pink { background: linear-gradient(135deg, #FF00FF, #880088); }
-    .can::before { content: ''; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 20px; height: 10px; background: #333; border-radius: 3px; }
     .mist { position: absolute; width: 120px; height: 120px; filter: blur(40px); opacity: 0.4; border-radius: 50%; z-index: 0; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. INPUT E BOMBOLETTE ---
+# --- 3. INPUT ---
 st.markdown('<div class="graffiti-title">CHATITALY URBAN WALL</div>', unsafe_allow_html=True)
 
 col_sx, col_main, col_dx = st.columns([0.2, 0.6, 0.2])
@@ -63,8 +85,8 @@ with col_sx:
 with col_main:
     with st.form("bomb", clear_on_submit=True):
         col_tag, col_msg = st.columns([1, 2])
-        nick = col_tag.text_input("TAG", placeholder="Il tuo nome")
-        txt = col_msg.text_area("MESSAGGIO", placeholder="Scrivi sul muro...")
+        nick = col_tag.text_input("TAG", placeholder="Nickname")
+        txt = col_msg.text_area("MESSAGGIO", placeholder="Spruzza la tua arte...")
         if st.form_submit_button("💨 BOMB THE WALL"):
             if txt.strip():
                 l = len(txt)
@@ -113,29 +135,3 @@ if messaggi:
     """
     
     html_content = ""
-    for m in messaggi:
-        c = get_vibrant_color() 
-        random.seed(m['id'])
-        m_rand = f"{random.randint(5,25)}px"
-        rot = random.randint(-6, 6)
-        
-        html_content += f'''
-        <div class="graffito-card" style="--c: {c}; --m: {m_rand};">
-            <div class="splat"></div>
-            <div class="text-spray" style="color: {c}; font-family: {m['font']}; font-size: {m['font_size']}px; transform: rotate({rot}deg);">
-                {m['testo'].replace("<","&lt;")}
-            </div>
-            <div class="drip" style="--c: {c};"></div>
-            <div class="tag">@{m['autore']}</div>
-        </div>
-        '''
-    
-    st.components.v1.html(f"{style}<div class='wall-grid'>{html_content}</div>", height=3000, scrolling=True)
-
-# --- 5. MOD ---
-with st.expander("MOD"):
-    if st.text_input("Psw", type="password") == "chatitaly123":
-        for m in messaggi:
-            if st.button(f"Elimina {m['id']}", key=f"d_{m['id']}"):
-                supabase.table("muro").delete().eq("id", m['id']).execute()
-                st.rerun()
