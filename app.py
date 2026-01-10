@@ -13,7 +13,7 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Urban Wall Pro", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Urban Wall Fix", layout="wide", initial_sidebar_state="collapsed")
 
 # --- 2. LOGICA RESET ---
 def auto_reset_check():
@@ -30,12 +30,12 @@ def auto_reset_check():
 
 auto_reset_check()
 
-# --- 3. CSS GLOBALE ---
+# --- 3. CSS CORE ---
 st.markdown("""
     <style>
     [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
     .stApp {
-        background-image: url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brickwork-pattern-block-stone-structure-backdrop-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg");
+        background-image: url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg");
         background-size: cover;
         background-attachment: fixed;
     }
@@ -47,7 +47,7 @@ st.markdown("""
         text-align: center;
         color: #fff;
         text-shadow: 0 0 15px #FF00FF;
-        font-size: 30px;
+        font-size: 28px;
         padding: 10px;
     }
     
@@ -80,9 +80,9 @@ with c2:
     if submitted and txt.strip():
         st.session_state["saved_nick"] = nick
         l = len(txt)
-        if l < 10: f_size, rot, font = random.randint(35, 45), random.randint(-15, 15), "'Rock Salt', cursive"
-        elif l < 50: f_size, rot, font = random.randint(24, 30), random.randint(-8, 8), "'Permanent Marker', cursive"
-        else: f_size, rot, font = random.randint(17, 21), random.randint(-3, 3), "'Patrick Hand', cursive"
+        if l < 10: f_size, rot, font = random.randint(32, 42), random.randint(-12, 12), "'Rock Salt', cursive"
+        elif l < 50: f_size, rot, font = random.randint(22, 28), random.randint(-7, 7), "'Permanent Marker', cursive"
+        else: f_size, rot, font = random.randint(16, 20), random.randint(-3, 3), "'Patrick Hand', cursive"
 
         data = {
             "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
@@ -94,26 +94,28 @@ with c2:
             st.rerun()
         except: st.rerun()
 
-# --- 6. IL MURO (FIXED) ---
+# --- 6. IL MURO (VERSIONE STABILE) ---
 messaggi = carica_messaggi()
 if messaggi:
     style_block = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
         .wall-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            grid-auto-rows: minmax(200px, auto);
-            gap: 30px;
-            padding: 40px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            padding: 50px;
+            width: 100%;
         }
 
-        .graffito-container {
+        .graffito-wrapper {
             position: relative;
+            min-width: 200px;
+            max-width: 350px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             animation: sprayIn 0.8s ease-out forwards;
         }
 
@@ -123,40 +125,30 @@ if messaggi:
         }
 
         .graffito-box {
-            position: relative;
-            padding: 10px;
+            padding: 15px;
             text-align: center;
             white-space: pre-wrap;
             word-wrap: break-word;
-            line-height: 1.2;
-            /* Effetto alone spray */
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px var(--glow);
-            transform: rotate(var(--r));
-            margin-top: var(--mt);
-            margin-left: var(--ml);
+            line-height: 1.3;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            width: 100%; /* Forza il box a non collassare */
         }
 
-        /* Effetto Goccia migliorato (non rompe il layout) */
-        .drip-effect {
-            position: absolute;
-            top: 90%;
-            left: 50%;
+        .drip {
             width: 3px;
-            height: var(--dh);
             background: currentColor;
             opacity: 0.6;
             border-radius: 0 0 3px 3px;
-            box-shadow: 0 0 5px currentColor;
+            margin: -5px auto 0 auto; /* Fa partire la goccia dal fondo del testo */
         }
 
-        .tag { 
-            display: block; 
+        .tag-label { 
             font-family: sans-serif; 
-            font-size: 9px; 
-            color: #777; 
-            margin-top: 5px; 
+            font-size: 10px; 
+            color: rgba(255,255,255,0.4); 
+            margin-top: 10px;
             text-transform: uppercase;
-            text-shadow: none;
+            letter-spacing: 1px;
         }
     </style>
     """
@@ -164,36 +156,26 @@ if messaggi:
     content_html = ""
     for i, m in enumerate(messaggi):
         random.seed(m['id'])
-        mt = random.randint(-30, 30)
-        ml = random.randint(-30, 30)
-        
-        # Goccia opzionale
-        drip_html = ""
-        if len(m['testo']) < 30 and random.random() > 0.7:
-            dh = random.randint(20, 50)
-            drip_html = f'<div class="drip-effect" style="--dh: {dh}px;"></div>'
+        rot = m["rotazione"]
+        # Calcolo goccia separato per non influenzare il box del testo
+        drip_h = random.randint(20, 60) if (len(m['testo']) < 30 and random.random() > 0.6) else 0
+        drip_html = f'<div class="drip" style="height: {drip_h}px; color: {m["colore"]};"></div>' if drip_h > 0 else ""
         
         content_html += f'''
-        <div class="graffito-container">
-            <div class="graffito-box" style="
-                --r: {m["rotazione"]}deg; 
-                --mt: {mt}px; --ml: {ml}px;
-                --glow: {m["colore"]}44;
-                color: {m["colore"]}; font-family: {m["font"]}; 
-                font-size: {m["font_size"]}px;">
+        <div class="graffito-wrapper" style="transform: rotate({rot}deg);">
+            <div class="graffito-box" style="color: {m["colore"]}; font-family: {m["font"]}; font-size: {m["font_size"]}px;">
                 {m["testo"].replace("<","&lt;")}
-                {drip_html}
-                <span class="tag">@{m["autore"]}</span>
             </div>
+            {drip_html}
+            <div class="tag-label">BY {m["autore"]}</div>
         </div>
         '''
     
-    st.components.v1.html(f"{style_block}<div class='wall-grid'>{content_html}</div>", height=1800, scrolling=False)
+    st.components.v1.html(f"{style_block}<div class='wall-grid'>{content_html}</div>", height=2000, scrolling=False)
 
 # --- 7. ADMIN ---
 with st.expander("MOD"):
-    pwd = st.text_input("Psw", type="password")
-    if pwd == "chatitaly123":
+    if st.text_input("Psw", type="password") == "chatitaly123":
         for m in messaggi:
             col_a, col_b = st.columns([4,1])
             col_a.write(f"{m['autore']}: {m['testo'][:20]}")
