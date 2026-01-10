@@ -13,9 +13,9 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Urban Wall Floating", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Urban Wall Graffiti", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CSS CORE (BOX TRASPARENTI) ---
+# --- 2. CSS CORE (TITOLO GRAFFITO + SFONDO) ---
 st.markdown("""
     <style>
     header, footer, [data-testid="stSidebar"], [data-testid="stHeader"] { display: none !important; }
@@ -28,13 +28,25 @@ st.markdown("""
         background-attachment: fixed;
     }
 
-    .main-title {
+    /* TITOLO STILE GRAFFITO BOMBER */
+    .graffiti-title {
         font-family: 'Rock Salt', cursive;
         text-align: center;
-        color: white;
-        font-size: 35px;
-        padding: 30px 0;
-        text-shadow: 0 0 15px #FF00FF;
+        color: #fff;
+        font-size: clamp(30px, 8vw, 60px);
+        padding: 40px 0;
+        letter-spacing: -2px;
+        text-transform: uppercase;
+        /* Effetto vernice spruzzata: contorno netto + bagliore esterno */
+        text-shadow: 
+            -3px -3px 0 #000,  
+             3px -3px 0 #000,
+            -3px  3px 0 #000,
+             3px  3px 0 #000,
+             0 0 20px #FF00FF, 
+             0 0 40px #FF00FF66,
+             5px 10px 15px rgba(0,0,0,0.7);
+        transform: rotate(-2deg);
     }
 
     .stForm {
@@ -47,7 +59,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. CARICAMENTO DATI ---
+# --- 3. DATI ---
 def carica_messaggi():
     try:
         res = supabase.table("muro").select("*").order("id", desc=True).limit(40).execute()
@@ -55,14 +67,15 @@ def carica_messaggi():
     except: return []
 
 # --- 4. INPUT ---
-st.markdown('<div class="main-title">CHATITALY URBAN WALL</div>', unsafe_allow_html=True)
+# Titolo con stile Graffito
+st.markdown('<div class="graffiti-title">CHATITALY<br>URBAN WALL</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
 with c2:
     with st.form("spray_form", clear_on_submit=True):
         col_n, col_m = st.columns([1, 2])
         nick = col_n.text_input("TAG", placeholder="Chi sei?")
-        txt = col_m.text_area("MESSAGGIO", height=70, placeholder="Scrivi sul muro...")
+        txt = col_m.text_area("MESSAGGIO", height=70, placeholder="Lascia il tuo segno...")
         submitted = st.form_submit_button("💨 BOMB THE WALL")
 
     if submitted and txt.strip():
@@ -79,7 +92,7 @@ with c2:
         supabase.table("muro").insert(data).execute()
         st.rerun()
 
-# --- 5. IL MURO (SCRITTE FLUTTUANTI) ---
+# --- 5. IL MURO (MESSAGGI TRASPARENTI CON GOCCIA) ---
 messaggi = carica_messaggi()
 if messaggi:
     style_block = """
@@ -94,7 +107,7 @@ if messaggi:
         }
 
         .graffito-container {
-            background: transparent; /* Box ora invisibile */
+            background: transparent;
             width: 100%;
             min-height: 200px;
             display: flex;
@@ -102,11 +115,6 @@ if messaggi:
             align-items: center;
             justify-content: center;
             position: relative;
-            transition: transform 0.3s ease;
-        }
-
-        .graffito-container:hover {
-            transform: scale(1.1);
         }
 
         .text-neon {
@@ -117,7 +125,6 @@ if messaggi:
             z-index: 2;
         }
 
-        /* GOCCIA NEON CHE PARTE DAL TESTO */
         .drip-effect {
             width: 4px;
             height: 40px;
@@ -157,7 +164,7 @@ if messaggi:
                 color: {m["colore"]}; 
                 font-family: {m["font"]}; 
                 font-size: {m["font_size"]}px;
-                text-shadow: 0 0 10px {m["colore"]}, 0 0 20px {m["colore"]}66, 2px 2px 4px rgba(0,0,0,0.8);
+                text-shadow: 0 0 10px {m["colore"]}, 0 0 20px {m["colore"]}44, 2px 2px 4px rgba(0,0,0,0.8);
                 transform: rotate({m["rotazione"]}deg);">
                 {m["testo"].replace("<","&lt;")}
             </div>
