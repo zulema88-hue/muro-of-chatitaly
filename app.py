@@ -15,12 +15,11 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Chatitaly Urban Wall", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. LOGICA RESET AUTOMATICO ---
+# --- 2. LOGICA RESET ---
 def auto_reset_check():
     try:
         oggi = datetime.now().strftime("%Y-%m-%d")
         if st.session_state.get("last_check") != oggi:
-            # Controlla l'ultimo messaggio nel DB
             res = supabase.table("muro").select("created_at").order("id", desc=True).limit(1).execute()
             if res.data:
                 data_ultimo_msg = res.data[0]['created_at'].split('T')[0]
@@ -31,52 +30,40 @@ def auto_reset_check():
 
 auto_reset_check()
 
-# --- 3. CSS GLOBALE (NASCONDE SCROLLBAR ESTERNA) ---
+# --- 3. CSS GLOBALE ---
 st.markdown("""
     <style>
-    /* Nasconde menu e sidebar Streamlit */
     [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
-    
-    /* Sfondo e stile generale */
     .stApp {
         background-image: url("https://static.vecteezy.com/system/resources/previews/007/233/624/non_2x/brick-black-wall-texture-background-dark-brickwork-pattern-block-stone-structure-backdrop-dark-brick-wall-realistic-template-abstract-modern-wallpaper-design-illustration-vector.jpg");
         background-size: cover;
         background-attachment: fixed;
     }
-
-    /* Nasconde la scrollbar di Streamlit su Chrome/Safari/Edge */
     ::-webkit-scrollbar { width: 0px; background: transparent; }
-    /* Nasconde la scrollbar su Firefox */
     * { scrollbar-width: none; }
-
+    
     .neon-title {
         font-family: 'Permanent Marker', cursive;
         text-align: center;
         color: white;
         text-shadow: 0 0 20px #FF00FF, 0 0 40px #00FFFF;
-        font-size: clamp(30px, 10vw, 50px);
-        padding: 15px;
-        margin-bottom: 0px;
+        font-size: clamp(30px, 8vw, 50px);
+        padding: 10px;
     }
-
     .stTextInput input, .stTextArea textarea {
         background-color: rgba(0,0,0,0.8) !important;
         color: #39FF14 !important;
         border: 2px solid #444 !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
     }
-
     .stButton button {
         background: linear-gradient(45deg, #FF00FF, #00FFFF) !important;
-        color: white !important;
-        font-weight: bold !important;
-        border-radius: 15px !important;
-        border: none !important;
+        color: white !important; font-weight: bold !important; border-radius: 10px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. CARICAMENTO DATI ---
+# --- 4. FUNZIONI DATI ---
 def carica_messaggi():
     try:
         res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
@@ -93,75 +80,107 @@ with c2:
         with col_n:
             nick = st.text_input("NICK", value=st.session_state.get("saved_nick", ""), placeholder="Tag")
         with col_m:
-            txt = st.text_area("MESSAGGIO", height=70, placeholder="Spruzza qui...")
-        submitted = st.form_submit_button("💨 VAI COL GRAFFITO!")
+            txt = st.text_area("MESSAGGIO", height=70, placeholder="Cosa scrivi sul muro?")
+        submitted = st.form_submit_button("💨 SPRUZZA!")
 
     if submitted and txt.strip():
         st.session_state["saved_nick"] = nick
-        if len(txt) > 50: f_size, rot, font = random.randint(16, 19), random.randint(-2, 2), "'Patrick Hand', cursive"
-        else: f_size, rot, font = random.randint(26, 34), random.randint(-10, 10), "'Rock Salt', cursive"
+        lunghezza = len(txt)
+        
+        # LOGICA DINAMICA INTELLIGENTE
+        if lunghezza < 5: # Emoticon o sigle
+            f_size, rot, font, width = random.randint(40, 55), random.randint(-15, 15), "'Rock Salt', cursive", "100px"
+        elif lunghezza < 20: # Frasi brevi
+            f_size, rot, font, width = random.randint(30, 38), random.randint(-10, 10), "'Permanent Marker', cursive", "180px"
+        elif lunghezza < 100: # Frasi medie
+            f_size, rot, font, width = random.randint(20, 26), random.randint(-5, 5), "'Permanent Marker', cursive", "250px"
+        else: # Canzoni o poesie
+            f_size, rot, font, width = random.randint(15, 18), random.randint(-2, 2), "'Patrick Hand', cursive", "320px"
 
-        data = {"testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO", 
-                "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]), 
-                "font": font, "rotazione": rot, "font_size": f_size}
+        data = {
+            "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#00FF7F", "#FFD700"]),
+            "font": font, "rotazione": rot, "font_size": f_size
+        }
         try:
             supabase.table("muro").insert(data).execute()
             st.rerun()
         except: st.rerun()
 
-# --- 6. IL MURO (NASCONDE LA LINEA DI SCROLL) ---
+# --- 6. IL MURO SPARPARGLIATO ---
 messaggi = carica_messaggi()
 if messaggi:
     style_block = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
-        /* NASCONDE TOTALMENTE LA SCROLLBAR NELL'IFRAME */
-        ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
-        html, body { 
-            scrollbar-width: none; 
-            -ms-overflow-style: none; 
-            background: transparent; 
-            margin: 0; 
-            padding: 0;
-            overflow-x: hidden;
-        }
-
+        ::-webkit-scrollbar { width: 0px; height: 0px; }
+        html, body { scrollbar-width: none; background: transparent; margin: 0; padding: 0; overflow-x: hidden; }
+        
         .wall-container { 
-            display: flex; flex-wrap: wrap; justify-content: center; 
-            align-items: center; gap: 15px; padding: 20px; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: space-around; /* Sparpiglia i graffiti sulla riga */
+            align-items: center; 
+            padding: 40px 20px;
+            gap: 10px;
         }
 
         @keyframes sprayEffect {
-            0% { filter: blur(12px); opacity: 0; transform: scale(0.8); }
+            0% { filter: blur(10px); opacity: 0; transform: scale(0.8); }
             100% { filter: blur(0px); opacity: 1; transform: scale(1) rotate(var(--rot)); }
         }
 
         .graffiti-box { 
-            padding: 10px; text-align: center; 
-            filter: drop-shadow(4px 4px 2px rgba(0,0,0,0.9)); 
-            white-space: pre-wrap; word-wrap: break-word; 
-            max-width: 200px;
+            position: relative;
+            padding: 15px; 
+            text-align: center; 
+            filter: drop-shadow(5px 5px 2px rgba(0,0,0,0.9)); 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
             animation: sprayEffect 0.8s ease-out forwards;
+            /* L'EFFETTO CASUALE: spostamenti randomici */
+            margin-top: var(--m-top);
+            margin-bottom: var(--m-bottom);
+            margin-left: var(--m-left);
+            margin-right: var(--m-right);
         }
 
-        .author { display: block; font-family: sans-serif; font-size: 8px; color: #888; margin-top: 5px; opacity: 0.6; text-transform: uppercase; }
+        .author { display: block; font-family: sans-serif; font-size: 9px; color: #888; margin-top: 8px; opacity: 0.6; text-transform: uppercase; }
     </style>
     """
+    
     content_html = ""
     for i, m in enumerate(messaggi):
-        delay = i * 0.08 if i < 15 else 0 
+        # Generiamo spostamenti casuali per ogni singolo messaggio
+        m_top = f"{random.randint(-30, 40)}px"
+        m_bottom = f"{random.randint(-20, 30)}px"
+        m_left = f"{random.randint(-10, 20)}px"
+        m_right = f"{random.randint(-10, 20)}px"
+        
+        # Determiniamo la larghezza massima in base alla lunghezza del testo salvato
+        l_testo = len(m['testo'])
+        max_w = "120px" if l_testo < 10 else "250px" if l_testo < 50 else "350px"
+        
+        delay = i * 0.05 if i < 20 else 0 
+        
         content_html += f'''
-        <div class="graffiti-box" style="--rot: {m["rotazione"]}deg; color: {m["colore"]}; font-family: {m["font"]}; font-size: {m["font_size"]}px; animation-delay: {delay}s;">
+        <div class="graffiti-box" style="
+            --rot: {m["rotazione"]}deg; 
+            --m-top: {m_top}; --m-bottom: {m_bottom}; --m-left: {m_left}; --m-right: {m_right};
+            color: {m["colore"]}; 
+            font-family: {m["font"]}; 
+            font-size: {m["font_size"]}px; 
+            max-width: {max_w};
+            animation-delay: {delay}s;">
             {m["testo"].replace("<","&lt;")}
             <span class="author">BY {m["autore"]}</span>
         </div>
         '''
     
-    # height=2000 per assicurarci che ci sia spazio per tutti i messaggi senza scrollbar interna
-    st.components.v1.html(f"{style_block}<div class='wall-container'>{content_html}</div>", height=2000, scrolling=False)
+    st.components.v1.html(f"{style_block}<div class='wall-container'>{content_html}</div>", height=2500, scrolling=False)
 
 # --- 7. ADMIN ---
-with st.expander("🛡️ Admin Panel"):
+with st.expander("🛡️ Moderazione"):
     pwd = st.text_input("Psw", type="password")
     if pwd == "chatitaly123":
         for m in messaggi:
