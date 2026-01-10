@@ -15,7 +15,7 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Urban Wall HD", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CSS CORE (NITIDEZZA E SCHIZZI) ---
+# --- 2. CSS CORE (NITIDEZZA, SCHIZZI E BOMBOLETTE) ---
 st.markdown("""
     <style>
     header, footer, [data-testid="stSidebar"], [data-testid="stHeader"] { display: none !important; }
@@ -28,26 +28,38 @@ st.markdown("""
         background-attachment: fixed;
     }
 
-    /* TITOLO NITIDO E AGGRESSIVO */
+    /* TITOLO DEFINITO */
     .graffiti-title {
         font-family: 'Rock Salt', cursive;
         text-align: center;
         color: #FFFFFF;
         font-size: clamp(35px, 8vw, 65px);
-        padding: 40px 0;
+        padding: 20px 0;
         letter-spacing: -1px;
-        /* Outline netta per evitare sfocature */
-        text-shadow: 
-            2px 2px 0px #000,
-            -2px -2px 0px #000,
-            0 0 10px #FF00FF; /* Neon ridotto per nitidezza */
+        text-shadow: 2px 2px 0px #000, 0 0 10px #FF00FF;
         transform: rotate(-1deg);
+    }
+
+    /* CONTAINER INPUT CON BOMBOLETTE */
+    .input-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .spray-can {
+        font-size: 50px;
+        filter: drop-shadow(0 0 10px rgba(0,255,255,0.5));
     }
 
     .stForm {
         background: rgba(0, 0, 0, 0.8) !important;
         border: 1px solid #333 !important;
         border-radius: 12px !important;
+        flex-grow: 1;
+        max-width: 700px;
     }
 
     ::-webkit-scrollbar { width: 0px; }
@@ -61,11 +73,16 @@ def carica_messaggi():
         return res.data
     except: return []
 
-# --- 4. INPUT ---
+# --- 4. INPUT CON BOMBOLETTE ---
 st.markdown('<div class="graffiti-title">CHATITALY<br>URBAN WALL</div>', unsafe_allow_html=True)
 
-c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
-with c2:
+# Layout per le bombolette
+col1, col2, col3 = st.columns([0.15, 0.7, 0.15])
+
+with col1:
+    st.markdown("<div style='text-align: right;' class='spray-can'>🧴</div>", unsafe_allow_html=True) # Icona bomboletta sinistra
+
+with col2:
     with st.form("spray_form", clear_on_submit=True):
         col_n, col_m = st.columns([1, 2])
         nick = col_n.text_input("TAG", placeholder="Chi sei?")
@@ -86,7 +103,10 @@ with c2:
         supabase.table("muro").insert(data).execute()
         st.rerun()
 
-# --- 5. IL MURO CON SCHIZZI DI COLORE ---
+with col3:
+    st.markdown("<div style='text-align: left;' class='spray-can'>🧴</div>", unsafe_allow_html=True) # Icona bomboletta destra
+
+# --- 5. IL MURO CON SCHIZZI ---
 messaggi = carica_messaggi()
 if messaggi:
     style_block = """
@@ -110,14 +130,13 @@ if messaggi:
             justify-content: center;
         }
 
-        /* SCHIZZO DI COLORE RANDOM DIETRO LA SCRITTA */
         .paint-splatter {
             position: absolute;
             width: 150px;
             height: 150px;
             background: var(--c);
-            filter: blur(45px); /* Effetto spruzzata morbida */
-            opacity: 0.25; /* Meno opacità come richiesto */
+            filter: blur(45px);
+            opacity: 0.25;
             border-radius: 50%;
             z-index: 1;
             top: var(--top);
@@ -130,7 +149,6 @@ if messaggi:
             word-wrap: break-word;
             width: 90%;
             z-index: 2;
-            /* Neon meno opaco e più nitido */
             text-shadow: 1px 1px 2px #000, 0 0 8px var(--c);
         }
 
@@ -159,7 +177,6 @@ if messaggi:
     
     content_html = ""
     for m in messaggi:
-        # Generiamo parametri casuali per ogni schizzo basati sull'ID del messaggio
         random.seed(m['id'])
         s_top = f"{random.randint(10, 50)}%"
         s_left = f"{random.randint(20, 60)}%"
