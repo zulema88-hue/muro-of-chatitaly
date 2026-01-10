@@ -1,5 +1,6 @@
 import streamlit as st
 import random
+from datetime import datetime
 from supabase import create_client
 
 # --- 1. CONNESSIONE ---
@@ -14,7 +15,27 @@ supabase = init_connection()
 
 st.set_page_config(page_title="Chatitaly Urban Wall", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CSS ---
+# --- 2. LOGICA RESET AUTOMATICO (MEZZANOTTE) ---
+# Controlliamo se esiste un record con la data di oggi. Se il muro è vuoto o i messaggi sono di ieri, resetta.
+def auto_reset_check():
+    try:
+        oggi = datetime.now().strftime("%Y-%m-%d")
+        # Usiamo lo stato della sessione per evitare di controllare a ogni click
+        if st.session_state.get("last_check") != oggi:
+            # Recuperiamo l'ultimo messaggio per vedere la data
+            res = supabase.table("muro").select("created_at").order("id", desc=True).limit(1).execute()
+            if res.data:
+                data_ultimo_msg = res.data[0]['created_at'].split('T')[0]
+                if data_ultimo_msg != oggi:
+                    # Se l'ultimo messaggio non è di oggi, cancella tutto
+                    supabase.table("muro").delete().neq("id", 0).execute()
+            st.session_state["last_check"] = oggi
+    except:
+        pass
+
+auto_reset_check()
+
+# --- 3. CSS AGGIORNATO (MIGLIORATO PER MOBILE) ---
 st.markdown("""
     <style>
     [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
@@ -24,13 +45,12 @@ st.markdown("""
         background-attachment: fixed;
     }
     .neon-title {
-        font-family: sans-serif;
+        font-family: 'Permanent Marker', cursive;
         text-align: center;
         color: white;
-        text-shadow: 0 0 10px #FF00FF;
-        font-size: 35px;
-        font-weight: 900;
-        padding: 15px;
+        text-shadow: 0 0 15px #FF00FF;
+        font-size: clamp(25px, 8vw, 40px);
+        padding: 10px;
         background: rgba(0,0,0,0.7);
     }
     .stTextInput input, .stTextArea textarea {
@@ -38,98 +58,88 @@ st.markdown("""
         color: #00FF00 !important;
         border: 1px solid #444 !important;
     }
-    .stButton button {
-        background-color: #FF00FF !important;
-        color: white !important;
-        font-weight: bold !important;
-        width: 100%;
-    }
-    /* Stile per la tabella di moderazione */
-    .mod-table { color: white; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. FUNZIONI DATI ---
+# --- 4. FUNZIONI DATI ---
 def carica_messaggi():
     try:
         res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
         return res.data
     except: return []
 
-def elimina_messaggio(msg_id):
-    try:
-        supabase.table("muro").delete().eq("id", msg_id).execute()
-        st.success(f"Messaggio {msg_id} eliminato!")
-        st.rerun()
-    except:
-        st.error("Errore durante l'eliminazione")
+# --- 5. INTERFACCIA ---
+st.markdown('<div class="neon-title">CHATITALY URBAN WALL</div>', unsafe_allow_html=True)
 
-# --- 4. INTERFACCIA UTENTE ---
-st.markdown('<div class="neon-title">CHATITALY WALL</div>', unsafe_allow_html=True)
-
-c1, c2, c3 = st.columns([1, 2, 1])
+c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
 with c2:
     with st.form("spruzza_form", clear_on_submit=True):
-        col_n, col_m = st.columns([1, 3])
+        col_n, col_m = st.columns([1, 2])
         with col_n:
-            nick_val = st.session_state.get("saved_nick", "")
-            nick = st.text_input("NICK", value=nick_val, placeholder="Tag")
+            nick = st.text_input("NICK", value=st.session_state.get("saved_nick", ""), placeholder="Tag")
         with col_m:
-            txt = st.text_area("MESSAGGIO", height=70, placeholder="Scrivi qui...")
+            txt = st.text_area("MESSAGGIO", height=70, placeholder="Scrivi...")
         submitted = st.form_submit_button("SPRUZZA 🎨")
 
     if submitted and txt.strip():
         st.session_state["saved_nick"] = nick
         lunghezza = len(txt)
-        if lunghezza > 100: f_size, rot, font = random.randint(14, 16), random.randint(-1, 1), "'Patrick Hand', cursive"
-        elif lunghezza > 50: f_size, rot, font = random.randint(17, 20), random.randint(-2, 2), "'Patrick Hand', cursive"
-        elif lunghezza > 20: f_size, rot, font = random.randint(22, 25), random.randint(-4, 4), "'Permanent Marker', cursive"
-        else: f_size, rot, font = random.randint(26, 32), random.randint(-7, 7), "'Rock Salt', cursive"
+        # Calcolo font
+        if lunghezza > 50: f_size, rot, font = random.randint(15, 18), random.randint(-2, 2), "'Patrick Hand', cursive"
+        else: f_size, rot, font = random.randint(24, 32), random.randint(-10, 10), "'Rock Salt', cursive"
 
-        data = {"testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO", "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]), "font": font, "rotazione": rot, "font_size": f_size}
+        data = {"testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO", 
+                "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]), 
+                "font": font, "rotazione": rot, "font_size": f_size}
         try:
             supabase.table("muro").insert(data).execute()
             st.rerun()
         except: st.rerun()
 
-# --- 5. IL MURO ---
+# --- 6. IL MURO (VERSIONE MOBILE-FRIENDLY DISORDINATA) ---
 messaggi = carica_messaggi()
-
 if messaggi:
-    scala = 0.85 if len(messaggi) > 25 else 1.0
     style_block = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; background: transparent; overflow-x: hidden; }
-        .wall-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 30px; }
-        .graffiti-box { padding: 10px; text-align: center; filter: drop-shadow(3px 3px 1px rgba(0,0,0,0.9)); white-space: pre-wrap; word-wrap: break-word; line-height: 1.2; max-width: 280px; }
-        .author { display: block; font-family: sans-serif; font-size: 9px; color: #888; margin-top: 5px; text-transform: uppercase; border-top: 1px solid rgba(255,255,255,0.1); }
+        .wall-container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            align-items: center;
+            gap: 10px; /* Ridotto il gap per farli stare vicini */
+            padding: 10px; 
+        }
+        .graffiti-box { 
+            padding: 8px; 
+            text-align: center; 
+            filter: drop-shadow(3px 3px 1px rgba(0,0,0,0.9)); 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            line-height: 1.1; 
+            max-width: 180px; /* Più stretto così su mobile ne stanno almeno due vicini */
+            margin: 5px;
+        }
+        .author { display: block; font-family: sans-serif; font-size: 8px; color: #888; margin-top: 3px; text-transform: uppercase; }
     </style>
     """
     content_html = ""
     for m in messaggi:
-        current_size = int(m['font_size'] * scala)
-        clean_text = str(m['testo']).replace("<", "&lt;")
-        content_html += f'<div class="graffiti-box" style="transform: rotate({m["rotazione"]}deg); color: {m["colore"]}; font-family: {m["font"]}; font-size: {current_size}px;">{clean_text}<span class="author">BY {m["autore"]}</span></div>'
+        content_html += f'<div class="graffiti-box" style="transform: rotate({m["rotazione"]}deg); color: {m["colore"]}; font-family: {m["font"]}; font-size: {m["font_size"]}px;">{m["testo"].replace("<","&lt;")}<span class="author">BY {m["autore"]}</span></div>'
     
     st.components.v1.html(f"{style_block}<div class='wall-container'>{content_html}</div>", height=1500, scrolling=True)
 
-# --- 6. ADMIN MODERAZIONE SELETTIVA ---
-st.markdown("<br><hr style='opacity:0.1'>", unsafe_allow_html=True)
-with st.expander("🛡️ Moderazione Messaggi"):
-    pwd = st.text_input("Password Moderatore", type="password")
+# --- 7. MODERAZIONE ---
+with st.expander("🛡️ Admin"):
+    pwd = st.text_input("Psw", type="password")
     if pwd == "chatitaly123":
-        st.subheader("Gestione Graffiti")
-        if st.button("Svuota tutto il muro (Reset Totale)"):
+        if st.button("RESET TOTALE ORA"):
             supabase.table("muro").delete().neq("id", 0).execute()
             st.rerun()
-        
-        st.write("---")
-        # Lista messaggi per eliminazione singola
         for m in messaggi:
-            col_info, col_btn = st.columns([4, 1])
-            with col_info:
-                st.write(f"**{m['autore']}**: {m['testo'][:50]}...")
-            with col_btn:
-                if st.button(f"❌ Elimina", key=f"del_{m['id']}"):
-                    elimina_messaggio(m['id'])
+            c_info, c_btn = st.columns([4, 1])
+            c_info.write(f"{m['autore']}: {m['testo'][:30]}")
+            if c_btn.button("❌", key=f"del_{m['id']}"):
+                supabase.table("muro").delete().eq("id", m['id']).execute()
+                st.rerun()
