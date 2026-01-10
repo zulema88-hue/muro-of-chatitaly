@@ -13,10 +13,12 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Urban Graffiti Wall", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Urban Wall", layout="wide", initial_sidebar_state="collapsed")
 
 def random_neon():
-    return f"#{random.randint(100, 255):02x}{random.randint(100, 255):02x}{random.randint(100, 255):02x}"
+    # Colori neon vibranti ma solidi
+    palette = ["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#FFD700", "#FF4500", "#7B68EE"]
+    return random.choice(palette)
 
 # --- 2. CSS ---
 st.markdown("""
@@ -29,12 +31,13 @@ st.markdown("""
     }
     .graffiti-title {
         font-family: 'Rock Salt', cursive; text-align: center; color: white;
-        font-size: 45px; padding: 15px; text-shadow: 2px 2px 0px #000, 0 0 20px #FF00FF;
+        font-size: 45px; padding: 20px; text-shadow: 0 0 15px #FF00FF;
     }
-    .stForm { background: rgba(0,0,0,0.9) !important; border: 1px solid #444 !important; border-radius: 15px !important; z-index: 999; position: relative; }
+    .stForm { background: rgba(0,0,0,0.85) !important; border: 1px solid #333 !important; border-radius: 15px !important; }
     
+    /* BOMBOLETTE */
     .can { width: 40px; height: 90px; border-radius: 6px; border: 2px solid #111; position: relative; }
-    .mist { position: absolute; width: 120px; height: 120px; filter: blur(40px); opacity: 0.5; border-radius: 50%; }
+    .mist { position: absolute; width: 100px; height: 100px; filter: blur(40px); opacity: 0.4; border-radius: 50%; }
     
     ::-webkit-scrollbar { width: 0px; }
     </style>
@@ -45,7 +48,7 @@ st.markdown('<div class="graffiti-title">CHATITALY URBAN WALL</div>', unsafe_all
 c1, c2, c3 = st.columns([0.2, 0.6, 0.2])
 
 with c1:
-    st.markdown(f'<div style="position:relative; margin-left:auto;"><div class="mist" style="background:#00FFFF; top:-20px; left:-30px;"></div><div class="can" style="background:linear-gradient(#00FFFF, #005555); transform:rotate(-15deg); margin-left:auto;"></div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="position:relative; margin-left:auto;"><div class="mist" style="background:#00FFFF; top:-10px;"></div><div class="can" style="background:linear-gradient(#00FFFF, #005555); transform:rotate(-12deg); margin-left:auto;"></div></div>', unsafe_allow_html=True)
 
 with c2:
     with st.form("bomb", clear_on_submit=True):
@@ -55,90 +58,81 @@ with c2:
         if st.form_submit_button("💨 BOMB THE WALL"):
             if txt.strip():
                 l = len(txt)
-                f, s = ("'Rock Salt'", 40) if l < 20 else ("'Permanent Marker'", 30) if l < 60 else ("'Gochi Hand'", 24)
+                f, s = ("'Rock Salt'", 36) if l < 20 else ("'Permanent Marker'", 26) if l < 60 else ("'Gochi Hand'", 22)
                 supabase.table("muro").insert({
                     "testo": txt, "autore": nick.upper() or "ANONIMO",
-                    "colore": random_neon(), "font": f, "rotazione": random.randint(-15, 15), "font_size": s
+                    "colore": random_neon(), "font": f, "rotazione": random.randint(-5, 5), "font_size": s
                 }).execute()
                 st.rerun()
 
 with c3:
-    st.markdown(f'<div style="position:relative;"><div class="mist" style="background:#FF00FF; top:-20px; right:-30px;"></div><div class="can" style="background:linear-gradient(#FF00FF, #550055); transform:rotate(15deg);"></div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="position:relative;"><div class="mist" style="background:#FF00FF; top:-10px;"></div><div class="can" style="background:linear-gradient(#FF00FF, #550055); transform:rotate(12deg);"></div></div>', unsafe_allow_html=True)
 
-# --- 4. IL MURO DINAMICO ---
-# Carichiamo fino a 100 messaggi per fare volume
-res = supabase.table("muro").select("*").order("id", desc=True).limit(100).execute()
+# --- 4. IL MURO (GRIGLIA SPARPARGLIATA MA LEGGIBILE) ---
+res = supabase.table("muro").select("*").order("id", desc=True).limit(60).execute()
 messaggi = res.data
 
 if messaggi:
     style = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Gochi+Hand&display=swap" rel="stylesheet">
     <style>
-        .wall-area { 
-            position: relative; 
-            width: 100%; 
-            height: 2500px; /* Altezza fissa per permettere coordinate Y ampie */
-            overflow: hidden;
-            margin-top: 50px;
+        .wall-grid { 
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 40px;
+            padding: 40px;
+            align-items: center;
         }
-        .graffito-sticker { 
-            position: absolute; /* POSIZIONAMENTO RANDOM VERO */
+        .graffito-card { 
+            position: relative; 
             display: flex; 
             flex-direction: column; 
-            align-items: center; 
-            z-index: 2;
-            transition: transform 0.3s;
+            align-items: center;
+            padding: 20px;
+            margin: var(--rand-m);
         }
-        .graffito-sticker:hover { z-index: 100; transform: scale(1.1); } /* Torna in primo piano se passi sopra */
-        
-        .splat-bg { 
-            position: absolute; width: 250px; height: 250px; 
-            filter: blur(70px); opacity: 0.3; z-index: -1; 
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
+        .splat-effect { 
+            position: absolute; width: 180px; height: 180px; 
+            filter: blur(50px); opacity: 0.2; z-index: 1; 
+            background: var(--c);
         }
-        .text-neon { 
+        .text-spray { 
             text-align: center; 
-            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 15px var(--c);
-            line-height: 1;
-            white-space: pre-wrap;
-            max-width: 400px;
+            z-index: 2; 
+            /* Ombra naturale, niente bordini neri strani */
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8), 0 0 10px var(--c);
+            line-height: 1.2;
+            word-wrap: break-word;
         }
-        .drip-line { width: 5px; height: 50px; margin-top: -5px; border-radius: 0 0 10px 10px; z-index: 1; opacity: 0.8; }
+        .drip-classic { width: 3px; height: 35px; margin-top: 5px; border-radius: 0 0 10px 10px; z-index: 2; opacity: 0.7; }
+        .tag-name { color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 10px; font-family: sans-serif; }
     </style>
     """
     
-    html_elements = ""
+    html_content = ""
     for m in messaggi:
         random.seed(m['id']) 
-        # Calcoliamo posizione X (0-80%) e Y (0-90%) basata sull'ID
-        pos_x = random.randint(5, 75)
-        pos_y = random.randint(2, 95)
+        c = m.get('colore', random_neon())
+        # Spostamento leggero per rompere la simmetria senza sovrapporre tutto
+        rand_m = f"{random.randint(0,30)}px {random.randint(0,30)}px"
         
-        c_text = random_neon()
-        c_splat = random_neon()
-        rot = m.get('rotazione', random.randint(-15, 15))
-        font = m.get('font', "'Permanent Marker'")
-        size = m.get('font_size', 28)
-        
-        html_elements += f'''
-        <div class="graffito-sticker" style="left: {pos_x}%; top: {pos_y}%; --c: {c_text};">
-            <div class="splat-bg" style="background: {c_splat};"></div>
-            <div class="text-neon" style="color: {c_text}; font-family: {font}; font-size: {size}px; transform: rotate({rot}deg);">
+        html_content += f'''
+        <div class="graffito-card" style="--c: {c}; --rand-m: {rand_m};">
+            <div class="splat-effect"></div>
+            <div class="text-spray" style="color: {c}; font-family: {m['font']}; font-size: {m['font_size']}px; transform: rotate({m['rotazione']}deg);">
                 {m['testo'].replace("<","&lt;")}
             </div>
-            <div class="drip-line" style="background: {c_text}; box-shadow: 0 0 12px {c_text};"></div>
-            <div style="color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 5px; font-family: sans-serif; font-weight: bold;">@{m['autore']}</div>
+            <div class="drip-classic" style="background: {c}; box-shadow: 0 0 8px {c};"></div>
+            <div class="tag-name">@{m['autore']}</div>
         </div>
         '''
     
-    st.components.v1.html(f"{style}<div class='wall-area'>{html_elements}</div>", height=2500, scrolling=False)
+    st.components.v1.html(f"{style}<div class='wall-grid'>{html_content}</div>", height=2000, scrolling=True)
 
 # --- 5. ADMIN ---
-with st.expander("MODERAZIONE"):
+with st.expander("MOD"):
     if st.text_input("Psw", type="password") == "chatitaly123":
         for m in messaggi:
-            col_a, col_b = st.columns([4,1])
-            col_a.write(f"ID {m['id']} - {m['autore']}: {m['testo'][:30]}")
-            if col_b.button("🗑️", key=f"del_{m['id']}"):
+            if st.button(f"X {m['id']}", key=f"d_{m['id']}"):
                 supabase.table("muro").delete().eq("id", m['id']).execute()
                 st.rerun()
