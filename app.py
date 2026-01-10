@@ -13,46 +13,41 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Urban Wall Graffiti", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Urban Wall HD", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CSS CORE (TITOLO GRAFFITO + SFONDO) ---
+# --- 2. CSS CORE (NITIDEZZA E SCHIZZI) ---
 st.markdown("""
     <style>
     header, footer, [data-testid="stSidebar"], [data-testid="stHeader"] { display: none !important; }
 
     .stApp {
-        background-color: #0a0a0a;
+        background-color: #050505;
         background-image: 
-            linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)),
+            linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
             url("https://www.transparenttextures.com/patterns/dark-brick-wall.png");
         background-attachment: fixed;
     }
 
-    /* TITOLO STILE GRAFFITO BOMBER */
+    /* TITOLO NITIDO E AGGRESSIVO */
     .graffiti-title {
         font-family: 'Rock Salt', cursive;
         text-align: center;
-        color: #fff;
-        font-size: clamp(30px, 8vw, 60px);
+        color: #FFFFFF;
+        font-size: clamp(35px, 8vw, 65px);
         padding: 40px 0;
-        letter-spacing: -2px;
-        text-transform: uppercase;
-        /* Effetto vernice spruzzata: contorno netto + bagliore esterno */
+        letter-spacing: -1px;
+        /* Outline netta per evitare sfocature */
         text-shadow: 
-            -3px -3px 0 #000,  
-             3px -3px 0 #000,
-            -3px  3px 0 #000,
-             3px  3px 0 #000,
-             0 0 20px #FF00FF, 
-             0 0 40px #FF00FF66,
-             5px 10px 15px rgba(0,0,0,0.7);
-        transform: rotate(-2deg);
+            2px 2px 0px #000,
+            -2px -2px 0px #000,
+            0 0 10px #FF00FF; /* Neon ridotto per nitidezza */
+        transform: rotate(-1deg);
     }
 
     .stForm {
-        background: rgba(0, 0, 0, 0.7) !important;
-        border: 1px solid #444 !important;
-        border-radius: 15px !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+        border: 1px solid #333 !important;
+        border-radius: 12px !important;
     }
 
     ::-webkit-scrollbar { width: 0px; }
@@ -67,7 +62,6 @@ def carica_messaggi():
     except: return []
 
 # --- 4. INPUT ---
-# Titolo con stile Graffito
 st.markdown('<div class="graffiti-title">CHATITALY<br>URBAN WALL</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
@@ -80,19 +74,19 @@ with c2:
 
     if submitted and txt.strip():
         l = len(txt)
-        if l < 15: f_size, font = 34, "'Rock Salt', cursive"
-        elif l < 60: f_size, font = 26, "'Permanent Marker', cursive"
-        else: f_size, font = 20, "'Patrick Hand', cursive"
+        if l < 15: f_size, font = 36, "'Rock Salt', cursive"
+        elif l < 60: f_size, font = 28, "'Permanent Marker', cursive"
+        else: f_size, font = 22, "'Patrick Hand', cursive"
 
         data = {
             "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
-            "font": font, "rotazione": random.randint(-3, 3), "font_size": f_size
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#00FF7F"]),
+            "font": font, "rotazione": random.randint(-4, 4), "font_size": f_size
         }
         supabase.table("muro").insert(data).execute()
         st.rerun()
 
-# --- 5. IL MURO (MESSAGGI TRASPARENTI CON GOCCIA) ---
+# --- 5. IL MURO CON SCHIZZI DI COLORE ---
 messaggi = carica_messaggi()
 if messaggi:
     style_block = """
@@ -100,71 +94,84 @@ if messaggi:
     <style>
         .wall-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 50px;
-            padding: 40px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 60px;
+            padding: 50px 20px;
             justify-items: center;
         }
 
         .graffito-container {
-            background: transparent;
+            position: relative;
             width: 100%;
-            min-height: 200px;
+            min-height: 220px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: relative;
+        }
+
+        /* SCHIZZO DI COLORE RANDOM DIETRO LA SCRITTA */
+        .paint-splatter {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: var(--c);
+            filter: blur(45px); /* Effetto spruzzata morbida */
+            opacity: 0.25; /* Meno opacità come richiesto */
+            border-radius: 50%;
+            z-index: 1;
+            top: var(--top);
+            left: var(--left);
         }
 
         .text-neon {
             text-align: center;
-            line-height: 1.3;
+            line-height: 1.2;
             word-wrap: break-word;
             width: 90%;
             z-index: 2;
+            /* Neon meno opaco e più nitido */
+            text-shadow: 1px 1px 2px #000, 0 0 8px var(--c);
         }
 
         .drip-effect {
-            width: 4px;
-            height: 40px;
+            width: 3px;
+            height: 35px;
             background: var(--c);
             margin-top: 10px;
             border-radius: 0 0 10px 10px;
-            box-shadow: 0 0 10px var(--c), 0 0 20px var(--c);
+            box-shadow: 0 0 10px var(--c);
             position: relative;
-        }
-        .drip-effect::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: -3px;
-            width: 10px;
-            height: 10px;
-            background: var(--c);
-            border-radius: 50%;
+            z-index: 2;
         }
 
         .author-tag {
             font-family: sans-serif;
-            font-size: 11px;
-            color: rgba(255,255,255,0.3);
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
             text-transform: uppercase;
-            margin-top: 15px;
+            margin-top: 12px;
             letter-spacing: 2px;
+            z-index: 2;
         }
     </style>
     """
     
     content_html = ""
     for m in messaggi:
+        # Generiamo parametri casuali per ogni schizzo basati sull'ID del messaggio
+        random.seed(m['id'])
+        s_top = f"{random.randint(10, 50)}%"
+        s_left = f"{random.randint(20, 60)}%"
+        
         content_html += f'''
         <div class="graffito-container">
+            <div class="paint-splatter" style="--c: {m["colore"]}; --top: {s_top}; --left: {s_left};"></div>
             <div class="text-neon" style="
                 color: {m["colore"]}; 
                 font-family: {m["font"]}; 
                 font-size: {m["font_size"]}px;
-                text-shadow: 0 0 10px {m["colore"]}, 0 0 20px {m["colore"]}44, 2px 2px 4px rgba(0,0,0,0.8);
+                --c: {m["colore"]};
                 transform: rotate({m["rotazione"]}deg);">
                 {m["testo"].replace("<","&lt;")}
             </div>
@@ -173,9 +180,9 @@ if messaggi:
         </div>
         '''
     
-    st.components.v1.html(f"{style_block}<div class='wall-grid'>{content_html}</div>", height=2000, scrolling=False)
+    st.components.v1.html(f"{style_block}<div class='wall-grid'>{content_html}</div>", height=2500, scrolling=False)
 
-# --- ADMIN ---
+# --- 6. ADMIN ---
 with st.expander("MOD"):
     if st.text_input("Psw", type="password") == "chatitaly123":
         for m in messaggi:
