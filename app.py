@@ -13,9 +13,9 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Urban Wall HD", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Urban Wall Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CSS CORE (NITIDEZZA, SCHIZZI E BOMBOLETTE) ---
+# --- 2. CSS CORE (BOMBOLETTE CSS + TITOLO) ---
 st.markdown("""
     <style>
     header, footer, [data-testid="stSidebar"], [data-testid="stHeader"] { display: none !important; }
@@ -33,33 +33,61 @@ st.markdown("""
         font-family: 'Rock Salt', cursive;
         text-align: center;
         color: #FFFFFF;
-        font-size: clamp(35px, 8vw, 65px);
+        font-size: clamp(35px, 8vw, 60px);
         padding: 20px 0;
-        letter-spacing: -1px;
-        text-shadow: 2px 2px 0px #000, 0 0 10px #FF00FF;
-        transform: rotate(-1deg);
+        text-shadow: 2px 2px 0px #000, 0 0 15px #FF00FF;
     }
 
-    /* CONTAINER INPUT CON BOMBOLETTE */
-    .input-container {
+    /* BOMBOLETTA DISEGNATA IN CSS */
+    .can-container {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 20px;
-        margin-bottom: 40px;
+        gap: 30px;
+        margin-top: 20px;
     }
 
-    .spray-can {
-        font-size: 50px;
-        filter: drop-shadow(0 0 10px rgba(0,255,255,0.5));
+    .spray-can-css {
+        width: 45px;
+        height: 100px;
+        background: linear-gradient(90deg, #333 0%, #666 50%, #333 100%);
+        border-radius: 8px 8px 4px 4px;
+        position: relative;
+        border: 1px solid #111;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+    
+    /* Cappuccio della bomboletta */
+    .spray-can-css::before {
+        content: '';
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 25px;
+        height: 15px;
+        background: #222;
+        border-radius: 4px 4px 0 0;
+    }
+
+    /* Erogatore */
+    .spray-can-css::after {
+        content: '';
+        position: absolute;
+        top: -18px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 8px;
+        height: 8px;
+        background: #eee;
+        border-radius: 2px;
     }
 
     .stForm {
-        background: rgba(0, 0, 0, 0.8) !important;
-        border: 1px solid #333 !important;
-        border-radius: 12px !important;
-        flex-grow: 1;
-        max-width: 700px;
+        background: rgba(0, 0, 0, 0.85) !important;
+        border: 1px solid #444 !important;
+        border-radius: 15px !important;
+        max-width: 650px;
     }
 
     ::-webkit-scrollbar { width: 0px; }
@@ -73,20 +101,21 @@ def carica_messaggi():
         return res.data
     except: return []
 
-# --- 4. INPUT CON BOMBOLETTE ---
-st.markdown('<div class="graffiti-title">CHATITALY<br>URBAN WALL</div>', unsafe_allow_html=True)
+# --- 4. INTERFACCIA CON BOMBOLETTE ---
+st.markdown('<div class="graffiti-title">CHATITALY URBAN WALL</div>', unsafe_allow_html=True)
 
-# Layout per le bombolette
-col1, col2, col3 = st.columns([0.15, 0.7, 0.15])
+# Layout: Bomboletta - Form - Bomboletta
+c1, c2, c3 = st.columns([0.2, 0.6, 0.2])
 
-with col1:
-    st.markdown("<div style='text-align: right;' class='spray-can'>🧴</div>", unsafe_allow_html=True) # Icona bomboletta sinistra
+with c1:
+    st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="spray-can-css" style="margin-left: auto; transform: rotate(-10deg);"></div>', unsafe_allow_html=True)
 
-with col2:
+with c2:
     with st.form("spray_form", clear_on_submit=True):
         col_n, col_m = st.columns([1, 2])
         nick = col_n.text_input("TAG", placeholder="Chi sei?")
-        txt = col_m.text_area("MESSAGGIO", height=70, placeholder="Lascia il tuo segno...")
+        txt = col_m.text_area("MESSAGGIO", height=70, placeholder="Bombola il muro...")
         submitted = st.form_submit_button("💨 BOMB THE WALL")
 
     if submitted and txt.strip():
@@ -97,16 +126,17 @@ with col2:
 
         data = {
             "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#00FF7F"]),
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
             "font": font, "rotazione": random.randint(-4, 4), "font_size": f_size
         }
         supabase.table("muro").insert(data).execute()
         st.rerun()
 
-with col3:
-    st.markdown("<div style='text-align: left;' class='spray-can'>🧴</div>", unsafe_allow_html=True) # Icona bomboletta destra
+with c3:
+    st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="spray-can-css" style="margin-right: auto; transform: rotate(10deg);"></div>', unsafe_allow_html=True)
 
-# --- 5. IL MURO CON SCHIZZI ---
+# --- 5. IL MURO ---
 messaggi = carica_messaggi()
 if messaggi:
     style_block = """
@@ -119,7 +149,6 @@ if messaggi:
             padding: 50px 20px;
             justify-items: center;
         }
-
         .graffito-container {
             position: relative;
             width: 100%;
@@ -129,20 +158,15 @@ if messaggi:
             align-items: center;
             justify-content: center;
         }
-
         .paint-splatter {
             position: absolute;
-            width: 150px;
-            height: 150px;
+            width: 160px;
+            height: 160px;
             background: var(--c);
-            filter: blur(45px);
-            opacity: 0.25;
-            border-radius: 50%;
+            filter: blur(50px);
+            opacity: 0.22;
             z-index: 1;
-            top: var(--top);
-            left: var(--left);
         }
-
         .text-neon {
             text-align: center;
             line-height: 1.2;
@@ -151,7 +175,6 @@ if messaggi:
             z-index: 2;
             text-shadow: 1px 1px 2px #000, 0 0 8px var(--c);
         }
-
         .drip-effect {
             width: 3px;
             height: 35px;
@@ -159,18 +182,14 @@ if messaggi:
             margin-top: 10px;
             border-radius: 0 0 10px 10px;
             box-shadow: 0 0 10px var(--c);
-            position: relative;
             z-index: 2;
         }
-
         .author-tag {
             font-family: sans-serif;
             font-size: 10px;
             color: rgba(255,255,255,0.4);
-            text-transform: uppercase;
             margin-top: 12px;
             letter-spacing: 2px;
-            z-index: 2;
         }
     </style>
     """
