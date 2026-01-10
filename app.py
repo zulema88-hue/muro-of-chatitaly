@@ -3,7 +3,7 @@ import random
 from datetime import datetime
 from supabase import create_client
 
-# --- 1. CONNESSIONE ---
+# --- 1. CONNESSIONE (VERIFICA CREDENZIALI) ---
 URL = "https://wumwurwuwoysrvutupde.supabase.co"
 KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1bXd1cnd1d295c3J2dXR1cGRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDgwMzIsImV4cCI6MjA4MzUyNDAzMn0.90s0KWQTOHb2fHdlgS4vvMNI-7iiDA-L0aR0qJ_5k7k"
 
@@ -36,7 +36,7 @@ st.markdown("""
         background-attachment: fixed;
     }
 
-    /* TITOLO ACCATTIVANTE WILDSTYLE */
+    /* TITOLO SUPER ACCATTIVANTE */
     @keyframes flicker {
         0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
         20%, 22%, 24%, 55% { opacity: 0.8; }
@@ -45,23 +45,17 @@ st.markdown("""
     .graffiti-title {
         font-family: 'Rock Salt', cursive;
         text-align: center;
-        font-size: clamp(40px, 8vw, 70px);
+        font-size: clamp(40px, 8vw, 75px);
         font-weight: 900;
         padding: 30px 0;
-        margin-bottom: 10px;
-        background: linear-gradient(to bottom, #ffffff 40%, #aaaaaa 100%);
+        background: linear-gradient(to bottom, #ffffff 30%, #888888 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.7));
         text-shadow: 
-            3px 3px 0px #000, 
-            -1px -1px 0px #000,
-            1px -1px 0px #000,
-            -1px 1px 0px #000,
-            1px 1px 0px #000,
+            4px 4px 0px #000, 
             0 0 20px #FF00FF,
-            0 0 40px #FF00FF;
-        animation: flicker 3s infinite alternate;
+            0 0 40px #00FFFF;
+        animation: flicker 4s infinite alternate;
         letter-spacing: -2px;
     }
 
@@ -85,8 +79,8 @@ with col_sx:
 with col_main:
     with st.form("bomb", clear_on_submit=True):
         col_tag, col_msg = st.columns([1, 2])
-        nick = col_tag.text_input("TAG", placeholder="Nickname")
-        txt = col_msg.text_area("MESSAGGIO", placeholder="Spruzza la tua arte...")
+        nick = col_tag.text_input("TAG", placeholder="Il tuo nome...")
+        txt = col_msg.text_area("MESSAGGIO", placeholder="Spruzza qualcosa sul muro!")
         if st.form_submit_button("💨 BOMB THE WALL"):
             if txt.strip():
                 l = len(txt)
@@ -100,9 +94,13 @@ with col_main:
 with col_dx:
     st.markdown('<div style="height:50px"></div><div style="position:relative; display: flex; justify-content: flex-start;"><div class="mist" style="background:#FF00FF; top:-20px; left:0;"></div><div class="can can-pink" style="transform:rotate(15deg);"></div></div>', unsafe_allow_html=True)
 
-# --- 4. IL MURO ---
-res = supabase.table("muro").select("*").order("id", desc=True).limit(60).execute()
-messaggi = res.data
+# --- 4. IL MURO (RECUPERO DATI) ---
+try:
+    res = supabase.table("muro").select("*").order("id", desc=True).limit(80).execute()
+    messaggi = res.data
+except Exception as e:
+    st.error(f"Errore di caricamento: {e}")
+    messaggi = []
 
 if messaggi:
     style = """
@@ -135,3 +133,30 @@ if messaggi:
     """
     
     html_content = ""
+    for m in messaggi:
+        # Colore random forzato ad ogni refresh per dinamicità totale
+        c = get_vibrant_color() 
+        random.seed(m['id'])
+        m_rand = f"{random.randint(5,25)}px"
+        rot = random.randint(-6, 6)
+        
+        html_content += f'''
+        <div class="graffito-card" style="--c: {c}; --m: {m_rand};">
+            <div class="splat"></div>
+            <div class="text-spray" style="color: {c}; font-family: {m['font']}; font-size: {m['font_size']}px; transform: rotate({rot}deg);">
+                {m['testo'].replace("<","&lt;")}
+            </div>
+            <div class="drip"></div>
+            <div class="tag">@{m['autore']}</div>
+        </div>
+        '''
+    
+    st.components.v1.html(f"{style}<div class='wall-grid'>{html_content}</div>", height=3000, scrolling=True)
+
+# --- 5. MOD ---
+with st.expander("MOD"):
+    if st.text_input("Psw", type="password") == "chatitaly123":
+        for m in messaggi:
+            if st.button(f"Elimina {m['id']}", key=f"d_{m['id']}"):
+                supabase.table("muro").delete().eq("id", m['id']).execute()
+                st.rerun()
