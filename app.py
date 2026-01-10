@@ -13,7 +13,7 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Chatitaly Urban Wall", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Urban Chaos Wall", layout="wide", initial_sidebar_state="collapsed")
 
 # --- 2. LOGICA RESET ---
 def auto_reset_check():
@@ -30,7 +30,7 @@ def auto_reset_check():
 
 auto_reset_check()
 
-# --- 3. CSS GLOBALE ---
+# --- 3. CSS CORE ---
 st.markdown("""
     <style>
     [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
@@ -39,67 +39,60 @@ st.markdown("""
         background-size: cover;
         background-attachment: fixed;
     }
-    ::-webkit-scrollbar { width: 0px; background: transparent; }
+    ::-webkit-scrollbar { width: 0px; }
     * { scrollbar-width: none; }
     
-    .neon-title {
-        font-family: 'Permanent Marker', cursive;
+    .neon-header {
+        font-family: 'Rock Salt', cursive;
         text-align: center;
-        color: white;
-        text-shadow: 0 0 20px #FF00FF, 0 0 40px #00FFFF;
-        font-size: clamp(30px, 8vw, 50px);
-        padding: 10px;
+        color: #fff;
+        text-shadow: 0 0 10px #FF00FF, 0 0 20px #FF00FF, 0 0 40px #FF00FF;
+        font-size: 40px;
+        padding: 20px;
+        background: rgba(0,0,0,0.4);
     }
-    .stTextInput input, .stTextArea textarea {
-        background-color: rgba(0,0,0,0.8) !important;
-        color: #39FF14 !important;
-        border: 2px solid #444 !important;
-        border-radius: 10px !important;
-    }
-    .stButton button {
-        background: linear-gradient(45deg, #FF00FF, #00FFFF) !important;
-        color: white !important; font-weight: bold !important; border-radius: 10px !important;
+    
+    /* Form Stile "Clandestino" */
+    .stForm {
+        background: rgba(0,0,0,0.8) !important;
+        border: 2px solid #FF00FF !important;
+        border-radius: 20px !important;
+        padding: 15px !important;
+        position: relative;
+        z-index: 999; /* Sempre sopra i graffiti */
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. FUNZIONI DATI ---
+# --- 4. FUNZIONI ---
 def carica_messaggi():
     try:
-        res = supabase.table("muro").select("*").order("id", desc=True).limit(50).execute()
+        res = supabase.table("muro").select("*").order("id", desc=False).limit(60).execute()
         return res.data
     except: return []
 
-# --- 5. INTERFACCIA ---
-st.markdown('<div class="neon-title">CHATITALY URBAN WALL</div>', unsafe_allow_html=True)
+# --- 5. INPUT ---
+st.markdown('<div class="neon-header">CHATITALY WILD WALL</div>', unsafe_allow_html=True)
 
-c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
+c1, c2, c3 = st.columns([0.15, 0.7, 0.15])
 with c2:
-    with st.form("spruzza_form", clear_on_submit=True):
-        col_n, col_m = st.columns([1, 3])
-        with col_n:
-            nick = st.text_input("NICK", value=st.session_state.get("saved_nick", ""), placeholder="Tag")
-        with col_m:
-            txt = st.text_area("MESSAGGIO", height=70, placeholder="Cosa scrivi sul muro?")
-        submitted = st.form_submit_button("💨 SPRUZZA!")
+    with st.form("spray_form", clear_on_submit=True):
+        col_n, col_m = st.columns([1, 2])
+        nick = col_n.text_input("TAG", value=st.session_state.get("saved_nick", ""), placeholder="Nick")
+        txt = col_m.text_area("MESSAGGIO", height=65, placeholder="Spruzza qui...")
+        submitted = st.form_submit_button("💨 BOMB THE WALL!")
 
     if submitted and txt.strip():
         st.session_state["saved_nick"] = nick
-        lunghezza = len(txt)
-        
-        # LOGICA DINAMICA INTELLIGENTE
-        if lunghezza < 5: # Emoticon o sigle
-            f_size, rot, font, width = random.randint(40, 55), random.randint(-15, 15), "'Rock Salt', cursive", "100px"
-        elif lunghezza < 20: # Frasi brevi
-            f_size, rot, font, width = random.randint(30, 38), random.randint(-10, 10), "'Permanent Marker', cursive", "180px"
-        elif lunghezza < 100: # Frasi medie
-            f_size, rot, font, width = random.randint(20, 26), random.randint(-5, 5), "'Permanent Marker', cursive", "250px"
-        else: # Canzoni o poesie
-            f_size, rot, font, width = random.randint(15, 18), random.randint(-2, 2), "'Patrick Hand', cursive", "320px"
+        l = len(txt)
+        # Font e Dimensioni Hardcore
+        if l < 10: f_size, rot, font = random.randint(45, 65), random.randint(-20, 20), "'Rock Salt', cursive"
+        elif l < 60: f_size, rot, font = random.randint(28, 40), random.randint(-15, 15), "'Permanent Marker', cursive"
+        else: f_size, rot, font = random.randint(18, 24), random.randint(-5, 5), "'Patrick Hand', cursive"
 
         data = {
             "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#00FF7F", "#FFD700"]),
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#00FF7F", "#FFD700", "#FF4500"]),
             "font": font, "rotazione": rot, "font_size": f_size
         }
         try:
@@ -107,85 +100,53 @@ with c2:
             st.rerun()
         except: st.rerun()
 
-# --- 6. IL MURO SPARPARGLIATO ---
+# --- 6. IL MURO CAOTICO ---
 messaggi = carica_messaggi()
 if messaggi:
     style_block = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
-        ::-webkit-scrollbar { width: 0px; height: 0px; }
-        html, body { scrollbar-width: none; background: transparent; margin: 0; padding: 0; overflow-x: hidden; }
-        
-        .wall-container { 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: space-around; /* Sparpiglia i graffiti sulla riga */
-            align-items: center; 
-            padding: 40px 20px;
-            gap: 10px;
-        }
-
-        @keyframes sprayEffect {
-            0% { filter: blur(10px); opacity: 0; transform: scale(0.8); }
-            100% { filter: blur(0px); opacity: 1; transform: scale(1) rotate(var(--rot)); }
-        }
-
-        .graffiti-box { 
+        .wall-canvas {
             position: relative;
-            padding: 15px; 
-            text-align: center; 
-            filter: drop-shadow(5px 5px 2px rgba(0,0,0,0.9)); 
-            white-space: pre-wrap; 
-            word-wrap: break-word; 
-            animation: sprayEffect 0.8s ease-out forwards;
-            /* L'EFFETTO CASUALE: spostamenti randomici */
-            margin-top: var(--m-top);
-            margin-bottom: var(--m-bottom);
-            margin-left: var(--m-left);
-            margin-right: var(--m-right);
+            width: 100%;
+            height: 1200px; /* Altezza fissa per permettere il posizionamento assoluto */
+            overflow: hidden;
+            background: transparent;
         }
 
-        .author { display: block; font-family: sans-serif; font-size: 9px; color: #888; margin-top: 8px; opacity: 0.6; text-transform: uppercase; }
+        @keyframes sprayIn {
+            0% { opacity: 0; filter: blur(20px) brightness(2); transform: scale(1.5); }
+            100% { opacity: 1; filter: blur(0px) brightness(1); transform: scale(1); }
+        }
+
+        .graffito {
+            position: absolute;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-align: center;
+            line-height: 1.1;
+            animation: sprayIn 0.6s ease-out forwards;
+            filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.8));
+            cursor: pointer;
+            transition: transform 0.2s, z-index 0.2s;
+        }
+        
+        .graffito:hover {
+            transform: scale(1.2) rotate(0deg) !important;
+            z-index: 1000 !important;
+            filter: drop-shadow(0 0 15px currentColor);
+        }
+
+        .tag-name {
+            display: block;
+            font-family: sans-serif;
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 5px;
+            text-shadow: none;
+        }
     </style>
     """
     
     content_html = ""
-    for i, m in enumerate(messaggi):
-        # Generiamo spostamenti casuali per ogni singolo messaggio
-        m_top = f"{random.randint(-30, 40)}px"
-        m_bottom = f"{random.randint(-20, 30)}px"
-        m_left = f"{random.randint(-10, 20)}px"
-        m_right = f"{random.randint(-10, 20)}px"
-        
-        # Determiniamo la larghezza massima in base alla lunghezza del testo salvato
-        l_testo = len(m['testo'])
-        max_w = "120px" if l_testo < 10 else "250px" if l_testo < 50 else "350px"
-        
-        delay = i * 0.05 if i < 20 else 0 
-        
-        content_html += f'''
-        <div class="graffiti-box" style="
-            --rot: {m["rotazione"]}deg; 
-            --m-top: {m_top}; --m-bottom: {m_bottom}; --m-left: {m_left}; --m-right: {m_right};
-            color: {m["colore"]}; 
-            font-family: {m["font"]}; 
-            font-size: {m["font_size"]}px; 
-            max-width: {max_w};
-            animation-delay: {delay}s;">
-            {m["testo"].replace("<","&lt;")}
-            <span class="author">BY {m["autore"]}</span>
-        </div>
-        '''
-    
-    st.components.v1.html(f"{style_block}<div class='wall-container'>{content_html}</div>", height=2500, scrolling=False)
-
-# --- 7. ADMIN ---
-with st.expander("🛡️ Moderazione"):
-    pwd = st.text_input("Psw", type="password")
-    if pwd == "chatitaly123":
-        for m in messaggi:
-            c_info, c_btn = st.columns([4, 1])
-            c_info.write(f"{m['autore']}: {m['testo'][:30]}")
-            if c_btn.button("Elimina", key=f"del_{m['id']}"):
-                supabase.table("muro").delete().eq("id", m['id']).execute()
-                st.rerun()
+    for i, m in
