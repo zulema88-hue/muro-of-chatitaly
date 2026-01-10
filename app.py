@@ -13,7 +13,7 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Urban Wild Wall", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Urban Wall Pro", layout="wide", initial_sidebar_state="collapsed")
 
 # --- 2. LOGICA RESET ---
 def auto_reset_check():
@@ -30,7 +30,7 @@ def auto_reset_check():
 
 auto_reset_check()
 
-# --- 3. CSS CORE ---
+# --- 3. CSS CORE + EFFETTI SPECIALI ---
 st.markdown("""
     <style>
     [data-testid="stSidebar"], .st-emotion-cache-10o1ihd, footer, header { display: none !important; }
@@ -39,24 +39,27 @@ st.markdown("""
         background-size: cover;
         background-attachment: fixed;
     }
-    ::-webkit-scrollbar { width: 0px; }
-    * { scrollbar-width: none; }
     
+    /* Titolo Neon Flicker */
+    @keyframes flicker {
+        0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { text-shadow: 0 0 10px #FF00FF, 0 0 20px #FF00FF; }
+        20%, 22%, 24%, 55% { text-shadow: none; opacity: 0.8; }
+    }
+
     .neon-header {
         font-family: 'Rock Salt', cursive;
         text-align: center;
         color: #fff;
-        text-shadow: 0 0 10px #FF00FF, 0 0 20px #FF00FF;
+        animation: flicker 3s infinite;
         font-size: 35px;
-        padding: 15px;
+        padding: 10px;
     }
     
     .stForm {
         background: rgba(0,0,0,0.85) !important;
         border: 2px solid #00FFFF !important;
         border-radius: 15px !important;
-        z-index: 1000;
-        position: relative;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -64,31 +67,31 @@ st.markdown("""
 # --- 4. FUNZIONI ---
 def carica_messaggi():
     try:
-        res = supabase.table("muro").select("*").order("id", desc=False).limit(60).execute()
+        res = supabase.table("muro").select("*").order("id", desc=True).limit(45).execute()
         return res.data
     except: return []
 
 # --- 5. INPUT ---
-st.markdown('<div class="neon-header">CHATITALY WILD WALL</div>', unsafe_allow_html=True)
+st.markdown('<div class="neon-header">CHATITALY URBAN WALL</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
 with c2:
     with st.form("spray_form", clear_on_submit=True):
         col_n, col_m = st.columns([1, 2])
-        nick = col_n.text_input("TAG", value=st.session_state.get("saved_nick", ""), placeholder="Chi sei?")
+        nick = col_n.text_input("TAG", placeholder="Chi sei?")
         txt = col_m.text_area("MESSAGGIO", height=65, placeholder="Spruzza qui...")
         submitted = st.form_submit_button("💨 BOMB THE WALL!")
 
     if submitted and txt.strip():
         st.session_state["saved_nick"] = nick
         l = len(txt)
-        if l < 10: f_size, rot, font = random.randint(45, 60), random.randint(-25, 25), "'Rock Salt', cursive"
-        elif l < 60: f_size, rot, font = random.randint(28, 38), random.randint(-15, 15), "'Permanent Marker', cursive"
-        else: f_size, rot, font = random.randint(18, 23), random.randint(-5, 5), "'Patrick Hand', cursive"
+        if l < 10: f_size, rot, font = random.randint(38, 50), random.randint(-15, 15), "'Rock Salt', cursive"
+        elif l < 50: f_size, rot, font = random.randint(24, 32), random.randint(-8, 8), "'Permanent Marker', cursive"
+        else: f_size, rot, font = random.randint(16, 22), random.randint(-3, 3), "'Patrick Hand', cursive"
 
         data = {
             "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#FF4500"]),
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF"]),
             "font": font, "rotazione": rot, "font_size": f_size
         }
         try:
@@ -96,61 +99,93 @@ with c2:
             st.rerun()
         except: st.rerun()
 
-# --- 6. IL MURO CAOTICO ---
+# --- 6. IL MURO CON EFFETTI ---
 messaggi = carica_messaggi()
 if messaggi:
     style_block = """
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
-        .wall-canvas {
-            position: relative; width: 100%; height: 1000px; 
-            overflow: hidden; background: transparent;
+        .wall-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            grid-auto-rows: minmax(200px, auto);
+            gap: 25px;
+            padding: 40px;
         }
+
+        /* Effetto Goccia (Drip) */
+        .drip {
+            position: absolute;
+            width: 4px;
+            height: 40px;
+            background: currentColor;
+            border-radius: 0 0 4px 4px;
+            top: 80%;
+            opacity: 0.7;
+            filter: blur(1px);
+        }
+
         @keyframes sprayIn {
-            0% { opacity: 0; filter: blur(15px); transform: scale(1.4); }
-            100% { opacity: 1; filter: blur(0px); transform: scale(1) rotate(var(--rot)); }
+            0% { opacity: 0; filter: blur(15px); transform: scale(0.7) translateY(-20px); }
+            100% { opacity: 1; filter: blur(0px); transform: scale(1) rotate(var(--r)); }
         }
-        .graffito {
-            position: absolute; white-space: pre-wrap; word-wrap: break-word;
-            text-align: center; line-height: 1.1; animation: sprayIn 0.6s ease-out forwards;
-            filter: drop-shadow(3px 3px 0px rgba(0,0,0,0.9));
-            transition: transform 0.2s;
+
+        .graffito-box {
+            position: relative;
+            padding: 15px;
+            text-align: center;
+            white-space: pre-wrap;
+            filter: drop-shadow(4px 4px 2px rgba(0,0,0,0.9));
+            animation: sprayIn 0.8s ease-out forwards;
+            margin-top: var(--mt);
+            margin-left: var(--ml);
+            transition: all 0.3s;
         }
-        .graffito:hover {
-            transform: scale(1.2) rotate(0deg) !important; z-index: 2000 !important;
-            filter: drop-shadow(0 0 10px currentColor);
+
+        .graffito-box:hover {
+            transform: scale(1.15) rotate(0deg) !important;
+            z-index: 500;
+            cursor: crosshair;
         }
-        .tag-name { display: block; font-family: sans-serif; font-size: 9px; color: rgba(255,255,255,0.3); margin-top: 4px; }
+
+        .tag { display: block; font-family: sans-serif; font-size: 10px; color: #666; margin-top: 8px; font-weight: bold; }
     </style>
     """
     
     content_html = ""
     for i, m in enumerate(messaggi):
-        # Usiamo l'ID per generare coordinate "stabili" ma casuali
-        random.seed(m['id']) 
-        left = random.randint(2, 78)
-        top = random.randint(2, 82)
-        z_index = 10 + i
-        max_w = "160px" if len(m['testo']) < 15 else "360px"
+        random.seed(m['id'])
+        mt = random.randint(-40, 40)
+        ml = random.randint(-40, 40)
+        
+        # Aggiungiamo gocce casuali solo per messaggi corti o medi
+        drip_html = ""
+        if len(m['testo']) < 40 and random.random() > 0.6:
+            drip_left = random.randint(20, 80)
+            drip_h = random.randint(20, 60)
+            drip_html = f'<div class="drip" style="left:{drip_left}%; height:{drip_h}px;"></div>'
         
         content_html += f'''
-        <div class="graffito" style="
-            left: {left}%; top: {top}%; z-index: {z_index}; 
-            color: {m["colore"]}; font-family: {m["font"]}; 
-            font-size: {m["font_size"]}px; --rot: {m["rotazione"]}deg;
-            max-width: {max_w};">
-            {m["testo"].replace("<","&lt;")}
-            <span class="tag-name">BY {m["autore"]}</span>
+        <div style="display: flex; justify-content: center; align-items: center;">
+            <div class="graffito-box" style="
+                --r: {m["rotazione"]}deg; 
+                --mt: {mt}px; --ml: {ml}px;
+                color: {m["colore"]}; font-family: {m["font"]}; 
+                font-size: {m["font_size"]}px;">
+                {m["testo"].replace("<","&lt;")}
+                {drip_html}
+                <span class="tag">TAG: {m["autore"]}</span>
+            </div>
         </div>
         '''
     
-    st.components.v1.html(f"{style_block}<div class='wall-canvas'>{content_html}</div>", height=1000)
+    st.components.v1.html(f"{style_block}<div class='wall-grid'>{content_html}</div>", height=1800, scrolling=False)
 
 # --- 7. ADMIN ---
 with st.expander("MOD"):
     pwd = st.text_input("Psw", type="password")
     if pwd == "chatitaly123":
-        for m in reversed(messaggi):
+        for m in messaggi:
             col_a, col_b = st.columns([4,1])
             col_a.write(f"{m['autore']}: {m['testo'][:20]}")
             if col_b.button("🗑️", key=f"d_{m['id']}"):
