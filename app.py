@@ -13,7 +13,7 @@ def init_connection():
 
 supabase = init_connection()
 
-st.set_page_config(page_title="Urban Chaos Wall", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Urban Wild Wall", layout="wide", initial_sidebar_state="collapsed")
 
 # --- 2. LOGICA RESET ---
 def auto_reset_check():
@@ -46,20 +46,17 @@ st.markdown("""
         font-family: 'Rock Salt', cursive;
         text-align: center;
         color: #fff;
-        text-shadow: 0 0 10px #FF00FF, 0 0 20px #FF00FF, 0 0 40px #FF00FF;
-        font-size: 40px;
-        padding: 20px;
-        background: rgba(0,0,0,0.4);
+        text-shadow: 0 0 10px #FF00FF, 0 0 20px #FF00FF;
+        font-size: 35px;
+        padding: 15px;
     }
     
-    /* Form Stile "Clandestino" */
     .stForm {
-        background: rgba(0,0,0,0.8) !important;
-        border: 2px solid #FF00FF !important;
-        border-radius: 20px !important;
-        padding: 15px !important;
+        background: rgba(0,0,0,0.85) !important;
+        border: 2px solid #00FFFF !important;
+        border-radius: 15px !important;
+        z-index: 1000;
         position: relative;
-        z-index: 999; /* Sempre sopra i graffiti */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -74,25 +71,24 @@ def carica_messaggi():
 # --- 5. INPUT ---
 st.markdown('<div class="neon-header">CHATITALY WILD WALL</div>', unsafe_allow_html=True)
 
-c1, c2, c3 = st.columns([0.15, 0.7, 0.15])
+c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
 with c2:
     with st.form("spray_form", clear_on_submit=True):
         col_n, col_m = st.columns([1, 2])
-        nick = col_n.text_input("TAG", value=st.session_state.get("saved_nick", ""), placeholder="Nick")
+        nick = col_n.text_input("TAG", value=st.session_state.get("saved_nick", ""), placeholder="Chi sei?")
         txt = col_m.text_area("MESSAGGIO", height=65, placeholder="Spruzza qui...")
         submitted = st.form_submit_button("💨 BOMB THE WALL!")
 
     if submitted and txt.strip():
         st.session_state["saved_nick"] = nick
         l = len(txt)
-        # Font e Dimensioni Hardcore
-        if l < 10: f_size, rot, font = random.randint(45, 65), random.randint(-20, 20), "'Rock Salt', cursive"
-        elif l < 60: f_size, rot, font = random.randint(28, 40), random.randint(-15, 15), "'Permanent Marker', cursive"
-        else: f_size, rot, font = random.randint(18, 24), random.randint(-5, 5), "'Patrick Hand', cursive"
+        if l < 10: f_size, rot, font = random.randint(45, 60), random.randint(-25, 25), "'Rock Salt', cursive"
+        elif l < 60: f_size, rot, font = random.randint(28, 38), random.randint(-15, 15), "'Permanent Marker', cursive"
+        else: f_size, rot, font = random.randint(18, 23), random.randint(-5, 5), "'Patrick Hand', cursive"
 
         data = {
             "testo": txt, "autore": nick.upper() if nick.strip() else "ANONIMO",
-            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#00FF7F", "#FFD700", "#FF4500"]),
+            "colore": random.choice(["#39FF14", "#FF00FF", "#00FFFF", "#FFFF00", "#FF3131", "#FFFFFF", "#FF4500"]),
             "font": font, "rotazione": rot, "font_size": f_size
         }
         try:
@@ -107,46 +103,56 @@ if messaggi:
     <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rock+Salt&family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
         .wall-canvas {
-            position: relative;
-            width: 100%;
-            height: 1200px; /* Altezza fissa per permettere il posizionamento assoluto */
-            overflow: hidden;
-            background: transparent;
+            position: relative; width: 100%; height: 1000px; 
+            overflow: hidden; background: transparent;
         }
-
         @keyframes sprayIn {
-            0% { opacity: 0; filter: blur(20px) brightness(2); transform: scale(1.5); }
-            100% { opacity: 1; filter: blur(0px) brightness(1); transform: scale(1); }
+            0% { opacity: 0; filter: blur(15px); transform: scale(1.4); }
+            100% { opacity: 1; filter: blur(0px); transform: scale(1) rotate(var(--rot)); }
         }
-
         .graffito {
-            position: absolute;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            text-align: center;
-            line-height: 1.1;
-            animation: sprayIn 0.6s ease-out forwards;
-            filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.8));
-            cursor: pointer;
-            transition: transform 0.2s, z-index 0.2s;
+            position: absolute; white-space: pre-wrap; word-wrap: break-word;
+            text-align: center; line-height: 1.1; animation: sprayIn 0.6s ease-out forwards;
+            filter: drop-shadow(3px 3px 0px rgba(0,0,0,0.9));
+            transition: transform 0.2s;
         }
-        
         .graffito:hover {
-            transform: scale(1.2) rotate(0deg) !important;
-            z-index: 1000 !important;
-            filter: drop-shadow(0 0 15px currentColor);
+            transform: scale(1.2) rotate(0deg) !important; z-index: 2000 !important;
+            filter: drop-shadow(0 0 10px currentColor);
         }
-
-        .tag-name {
-            display: block;
-            font-family: sans-serif;
-            font-size: 10px;
-            color: rgba(255,255,255,0.4);
-            margin-top: 5px;
-            text-shadow: none;
-        }
+        .tag-name { display: block; font-family: sans-serif; font-size: 9px; color: rgba(255,255,255,0.3); margin-top: 4px; }
     </style>
     """
     
     content_html = ""
-    for i, m in
+    for i, m in enumerate(messaggi):
+        # Usiamo l'ID per generare coordinate "stabili" ma casuali
+        random.seed(m['id']) 
+        left = random.randint(2, 78)
+        top = random.randint(2, 82)
+        z_index = 10 + i
+        max_w = "160px" if len(m['testo']) < 15 else "360px"
+        
+        content_html += f'''
+        <div class="graffito" style="
+            left: {left}%; top: {top}%; z-index: {z_index}; 
+            color: {m["colore"]}; font-family: {m["font"]}; 
+            font-size: {m["font_size"]}px; --rot: {m["rotazione"]}deg;
+            max-width: {max_w};">
+            {m["testo"].replace("<","&lt;")}
+            <span class="tag-name">BY {m["autore"]}</span>
+        </div>
+        '''
+    
+    st.components.v1.html(f"{style_block}<div class='wall-canvas'>{content_html}</div>", height=1000)
+
+# --- 7. ADMIN ---
+with st.expander("MOD"):
+    pwd = st.text_input("Psw", type="password")
+    if pwd == "chatitaly123":
+        for m in reversed(messaggi):
+            col_a, col_b = st.columns([4,1])
+            col_a.write(f"{m['autore']}: {m['testo'][:20]}")
+            if col_b.button("🗑️", key=f"d_{m['id']}"):
+                supabase.table("muro").delete().eq("id", m['id']).execute()
+                st.rerun()
